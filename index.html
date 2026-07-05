@@ -1270,43 +1270,64 @@
             font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.82rem;
         }
         .cam-footer button:not(.cam-capture-btn):hover { background: rgba(255,255,255,0.2); }
-        #cropReviewModal {
+        /* Perspective Crop Editor Modal */
+        #perspEditorModal {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.85); z-index: 1350;
+            background: rgba(0,0,0,0.95); z-index: 1400;
             justify-content: center; align-items: center; flex-direction: column;
-            padding: 20px;
+            padding: 8px;
         }
-        .crop-review-content {
-            background: var(--surface); border-radius: var(--radius-lg);
-            padding: 24px; max-width: 360px; width: 100%;
-            text-align: center; box-shadow: var(--shadow-lg);
+        .persp-editor-content {
+            background: #1a1a2e; border-radius: 12px; overflow: hidden;
+            max-width: 520px; width: 100%; max-height: 96vh;
+            display: flex; flex-direction: column; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
         }
-        .crop-review-content h3 {
-            font-family: 'Sora', sans-serif; font-size: 1rem; color: var(--text-primary);
-            margin: 0 0 16px 0;
+        .persp-editor-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 16px; background: #0f0f23; color: #e0e0e0;
+            font-family: 'Sora', sans-serif; font-weight: 700; font-size: 0.85rem;
         }
-        .crop-review-content img {
-            width: 175px; height: 225px; object-fit: cover;
-            border-radius: var(--radius-sm); border: 2px solid var(--border);
-            background: var(--bg);
+        .persp-editor-header button {
+            background: transparent; border: none; color: #aaa;
+            font-size: 1.4rem; cursor: pointer; padding: 2px 8px; line-height: 1;
         }
-        .crop-review-actions {
-            display: flex; gap: 10px; justify-content: center; margin-top: 16px;
+        .persp-editor-header button:hover { color: #fff; }
+        .persp-canvas-wrap {
+            position: relative; width: 100%; flex: 1;
+            display: flex; justify-content: center; align-items: center;
+            background: #000; min-height: 280px; max-height: 60vh; overflow: hidden;
         }
-        .crop-review-actions button {
-            padding: 10px 24px; border: none; border-radius: var(--radius-sm);
-            font-family: 'DM Sans', sans-serif; font-weight: 600; cursor: pointer;
-            font-size: 0.85rem;
+        #perspSourceCanvas { display: block; touch-action: none; cursor: crosshair; }
+        .persp-editor-bottom {
+            display: flex; gap: 8px; padding: 10px 12px; background: #0f0f23;
+            align-items: center;
         }
-        .crop-btn-accept { background: var(--primary); color: #fff; }
-        .crop-btn-accept:hover { opacity: 0.9; }
-        .crop-btn-retake { background: var(--text-secondary); color: #fff; }
-        .crop-btn-retake:hover { opacity: 0.9; }
+        .persp-preview-box {
+            width: 63px; height: 81px; border: 2px solid #333;
+            border-radius: 4px; overflow: hidden; flex-shrink: 0; background: #111;
+        }
+        #perspPreviewCanvas { width: 100%; height: 100%; display: block; }
+        .persp-editor-info {
+            flex: 1; color: #888; font-size: 0.68rem;
+            font-family: 'DM Sans', sans-serif; line-height: 1.5;
+        }
+        .persp-editor-info b { color: #00e676; }
+        .persp-editor-toolbar {
+            display: flex; gap: 8px; padding: 10px 12px; background: #0f0f23;
+            justify-content: flex-end;
+        }
+        .persp-editor-toolbar button {
+            padding: 10px 20px; border: none; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-weight: 600;
+            font-size: 0.82rem; cursor: pointer; transition: background 0.15s;
+        }
+        .persp-btn-retake { background: #444; color: #ddd; }
+        .persp-btn-retake:hover { background: #555; }
+        .persp-btn-accept { background: #2563eb; color: #fff; }
+        .persp-btn-accept:hover { background: #1d4ed8; }
 
-        body.dark-mode .crop-review-content { background: var(--surface); }
-        body.dark-mode .crop-review-content h3 { color: var(--text-primary); }
-        body.dark-mode .crop-review-content p { color: var(--text-secondary); }
-        body.dark-mode .crop-review-content img { border-color: var(--border); }
+        body.dark-mode .persp-editor-content { background: #1a1a2e; }
+        body.dark-mode .persp-editor-header { background: #0a0a1a; color: #ccc; }
 
         /* Print summary table styles */
         @media print {
@@ -2022,17 +2043,32 @@
     </div>
 </div>
 
-<!-- Crop Review Modal -->
-<div id="cropReviewModal">
-    <div class="crop-review-content">
-        <h3><i class="fa-solid fa-crop"></i> Review Photo</h3>
-        <img id="cropPreviewImg" src="" alt="Preview">
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin:8px 0 0;">
-            Auto-detected and corrected to 3.5 x 4.5 cm
-        </p>
-        <div class="crop-review-actions">
-            <button class="crop-btn-retake" onclick="retakePhoto()"><i class="fa-solid fa-rotate-left"></i> Retake</button>
-            <button class="crop-btn-accept" onclick="acceptPhoto()"><i class="fa-solid fa-check"></i> Accept</button>
+<!-- Perspective Crop Editor Modal -->
+<div id="perspEditorModal">
+    <div class="persp-editor-content">
+        <div class="persp-editor-header">
+            <span><i class="fa-solid fa-crop-simple"></i> Perspective Crop</span>
+            <button onclick="retakePerspectivePhoto()">&times;</button>
+        </div>
+        <div class="persp-canvas-wrap">
+            <canvas id="perspSourceCanvas"
+                onpointerdown="onPerspDown(event)"
+                onpointermove="onPerspMove(event)"
+                onpointerup="onPerspUp(event)"
+                onpointerleave="onPerspUp(event)"></canvas>
+        </div>
+        <div class="persp-editor-bottom">
+            <div class="persp-preview-box">
+                <canvas id="perspPreviewCanvas" width="175" height="225"></canvas>
+            </div>
+            <div class="persp-editor-info">
+                Drag the <b>4 corner handles</b> to match the photo edges.<br>
+                Live preview shown. Output: <b>350 x 450 px</b> (3.5 x 4.5 cm)
+            </div>
+        </div>
+        <div class="persp-editor-toolbar">
+            <button class="persp-btn-retake" onclick="retakePerspectivePhoto()"><i class="fa-solid fa-rotate-left"></i> Retake</button>
+            <button class="persp-btn-accept" onclick="acceptPerspectivePhoto()"><i class="fa-solid fa-check"></i> Accept</button>
         </div>
     </div>
 </div>
@@ -2152,7 +2188,7 @@
         try {
             if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); }
             const constraints = {
-                video: { facingMode: facing, width: { ideal: 480 }, height: { ideal: 616 }, aspectRatio: { ideal: 7/9 } },
+                video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 960 } },
                 audio: false
             };
             mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -2176,12 +2212,12 @@
     async function capturePhoto() {
         const video = document.getElementById('camVideo');
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 480;
-        canvas.height = video.videoHeight || 616;
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 960;
         canvas.getContext('2d').drawImage(video, 0, 0);
         closeCamera();
-        showToast('Processing...', '#3B82F6');
-        await processPhoto(canvas);
+        showToast('Loading editor...', '#3B82F6');
+        initPerspectiveEditor(canvas);
     }
 
     async function previewImage(event) {
@@ -2195,63 +2231,221 @@
                 canvas.width = img.width;
                 canvas.height = img.height;
                 canvas.getContext('2d').drawImage(img, 0, 0);
-                showToast('Detecting...', '#3B82F6');
-                await processPhoto(canvas);
+                showToast('Loading editor...', '#3B82F6');
+                initPerspectiveEditor(canvas);
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
+        event.target.value = '';
     }
 
-    async function processPhoto(srcCanvas) {
-        let region = null;
-        if (window.FaceDetector) {
-            try {
-                const detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-                const faces = await detector.detect(srcCanvas);
-                if (faces.length > 0) {
-                    const f = faces[0].boundingBox;
-                    const cx = f.x + f.width / 2;
-                    const cy = f.y + f.height / 2;
-                    const cw = Math.max(f.width * 2.8, f.height * 2.2, srcCanvas.width * 0.25);
-                    const ch = cw * 9 / 7;
-                    region = {
-                        left:   Math.max(0, cx - cw / 2),
-                        top:    Math.max(0, cy - ch * 0.38),
-                        right:  Math.min(srcCanvas.width, cx + cw / 2),
-                        bottom: Math.min(srcCanvas.height, cy + ch * 0.62)
-                    };
-                }
-            } catch (_) {}
+    /* ── Perspective Crop Editor ── */
+    let perspEditor = { sourceCanvas: null, corners: [], dragging: -1, displayScale: 1, previewTimer: null };
+
+    function initPerspectiveEditor(srcCanvas) {
+        perspEditor.sourceCanvas = srcCanvas;
+        perspEditor.dragging = -1;
+        const detected = autoDetectCorners(srcCanvas);
+        perspEditor.corners = detected || defaultCorners(srcCanvas);
+        document.getElementById('perspEditorModal').style.display = 'flex';
+        requestAnimationFrame(() => { setupPerspDisplay(); drawPerspEditor(); updatePerspPreview(); });
+    }
+
+    function defaultCorners(c) {
+        const m = 0.08;
+        return [
+            { x: c.width * m, y: c.height * m },
+            { x: c.width * (1 - m), y: c.height * m },
+            { x: c.width * (1 - m), y: c.height * (1 - m) },
+            { x: c.width * m, y: c.height * (1 - m) }
+        ];
+    }
+
+    function setupPerspDisplay() {
+        const cvs = document.getElementById('perspSourceCanvas');
+        const wrap = cvs.parentElement;
+        const maxW = wrap.clientWidth - 4, maxH = wrap.clientHeight - 4;
+        const s = Math.min(maxW / perspEditor.sourceCanvas.width, maxH / perspEditor.sourceCanvas.height, 1);
+        perspEditor.displayScale = s;
+        cvs.width = Math.round(perspEditor.sourceCanvas.width * s);
+        cvs.height = Math.round(perspEditor.sourceCanvas.height * s);
+    }
+
+    function drawPerspEditor() {
+        const cvs = document.getElementById('perspSourceCanvas');
+        const ctx = cvs.getContext('2d');
+        const s = perspEditor.displayScale, c = perspEditor.corners;
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+        ctx.drawImage(perspEditor.sourceCanvas, 0, 0, cvs.width, cvs.height);
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath();
+        ctx.rect(0, 0, cvs.width, cvs.height);
+        ctx.moveTo(c[0].x * s, c[0].y * s);
+        ctx.lineTo(c[1].x * s, c[1].y * s);
+        ctx.lineTo(c[2].x * s, c[2].y * s);
+        ctx.lineTo(c[3].x * s, c[3].y * s);
+        ctx.closePath();
+        ctx.fill('evenodd');
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 0.7;
+        for (let t = 0.25; t < 1; t += 0.25) {
+            let a = { x: c[0].x + (c[3].x - c[0].x) * t, y: c[0].y + (c[3].y - c[0].y) * t };
+            let b = { x: c[1].x + (c[2].x - c[1].x) * t, y: c[1].y + (c[2].y - c[1].y) * t };
+            ctx.beginPath(); ctx.moveTo(a.x * s, a.y * s); ctx.lineTo(b.x * s, b.y * s); ctx.stroke();
+            a = { x: c[0].x + (c[1].x - c[0].x) * t, y: c[0].y + (c[1].y - c[0].y) * t };
+            b = { x: c[3].x + (c[2].x - c[3].x) * t, y: c[3].y + (c[2].y - c[3].y) * t };
+            ctx.beginPath(); ctx.moveTo(a.x * s, a.y * s); ctx.lineTo(b.x * s, b.y * s); ctx.stroke();
         }
-        if (!region) {
-            // Try corner detection + perspective warp (like a doc scanner)
-            const corners = findPhotoCorners(srcCanvas);
-            if (corners) {
-                const final = perspectiveWarp(srcCanvas, corners, 350, 450);
-                if (final) {
-                    const base64 = final.toDataURL('image/jpeg', 0.85);
-                    showCropReview(final, base64);
-                    return;
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = '#00e676';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(c[0].x * s, c[0].y * s);
+        for (let i = 1; i <= 4; i++) ctx.lineTo(c[i % 4].x * s, c[i % 4].y * s);
+        ctx.stroke();
+        ctx.restore();
+
+        for (let i = 0; i < 4; i++) {
+            const x = c[i].x * s, y = c[i].y * s;
+            ctx.save();
+            ctx.fillStyle = '#00e676';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.arc(x, y, 13, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.stroke();
+            ctx.restore();
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    function updatePerspPreview() {
+        const pc = document.getElementById('perspPreviewCanvas');
+        const ctx = pc.getContext('2d');
+        ctx.clearRect(0, 0, pc.width, pc.height);
+        const warped = perspectiveWarp(perspEditor.sourceCanvas, perspEditor.corners, 175, 225);
+        if (warped) ctx.drawImage(warped, 0, 0, pc.width, pc.height);
+    }
+
+    function getCanvasPos(e) {
+        const r = document.getElementById('perspSourceCanvas').getBoundingClientRect();
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+
+    function onPerspDown(e) {
+        e.preventDefault();
+        const p = getCanvasPos(e), s = perspEditor.displayScale;
+        for (let i = 0; i < 4; i++) {
+            const dx = p.x - perspEditor.corners[i].x * s, dy = p.y - perspEditor.corners[i].y * s;
+            if (Math.sqrt(dx * dx + dy * dy) < 28) { perspEditor.dragging = i; return; }
+        }
+    }
+
+    function onPerspMove(e) {
+        e.preventDefault();
+        if (perspEditor.dragging < 0) return;
+        const p = getCanvasPos(e), s = perspEditor.displayScale;
+        const sw = perspEditor.sourceCanvas.width, sh = perspEditor.sourceCanvas.height;
+        perspEditor.corners[perspEditor.dragging] = {
+            x: Math.max(0, Math.min(sw, p.x / s)),
+            y: Math.max(0, Math.min(sh, p.y / s))
+        };
+        drawPerspEditor();
+        clearTimeout(perspEditor.previewTimer);
+        perspEditor.previewTimer = setTimeout(updatePerspPreview, 60);
+    }
+
+    function onPerspUp() {
+        if (perspEditor.dragging >= 0) { perspEditor.dragging = -1; updatePerspPreview(); }
+    }
+
+    function acceptPerspectivePhoto() {
+        const finalCanvas = perspectiveWarp(perspEditor.sourceCanvas, perspEditor.corners, 350, 450);
+        if (finalCanvas) {
+            const base64 = finalCanvas.toDataURL('image/jpeg', 0.85);
+            document.getElementById('photo-preview').innerHTML = '<img src="' + base64 + '">';
+            document.getElementById('photoBase64').value = base64;
+            document.getElementById('perspEditorModal').style.display = 'none';
+            showToast('Photo applied (350x450)', '#10B981');
+        } else {
+            showToast('Warp failed. Adjust corners.', '#EF4444');
+        }
+    }
+
+    function retakePerspectivePhoto() {
+        document.getElementById('perspEditorModal').style.display = 'none';
+        startCamera();
+    }
+
+    /* ── Auto Corner Detection (Canny-like) ── */
+    function autoDetectCorners(srcCanvas) {
+        const w = srcCanvas.width, h = srcCanvas.height;
+        const maxDim = 600;
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        const sw = Math.round(w * scale), sh = Math.round(h * scale);
+        const tmp = document.createElement('canvas');
+        tmp.width = sw; tmp.height = sh;
+        const tctx = tmp.getContext('2d');
+        tctx.drawImage(srcCanvas, 0, 0, sw, sh);
+        const d = tctx.getImageData(0, 0, sw, sh).data;
+
+        const gray = new Float32Array(sw * sh);
+        for (let i = 0; i < sw * sh; i++) gray[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+
+        const blurred = boxBlur(gray, sw, sh, 2);
+        const { mag, dir } = sobelGradients(blurred, sw, sh);
+        const nms = nonMaxSuppress(mag, dir, sw, sh);
+
+        const sorted = nms.filter(v => v > 0).sort((a, b) => a - b);
+        const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+        const high = median * 3 || 30, low = high * 0.4;
+
+        const edges = hysteresis(nms, sw, sh, high, low);
+        const contours = findContours(edges, sw, sh);
+
+        let bestQuad = null, bestArea = 0;
+        const totalArea = sw * sh;
+        for (const ctr of contours) {
+            const peri = ctr.reduce((s, p, i) => {
+                const n = (i + 1) % ctr.length;
+                return s + Math.sqrt((ctr[n].x - p.x) ** 2 + (ctr[n].y - p.y) ** 2);
+            }, 0);
+            const approx = approxPolyDP(ctr, peri * 0.02);
+            if (approx.length === 4 && isConvex(approx)) {
+                const area = polygonArea(approx);
+                if (area > bestArea && area > totalArea * 0.03 && area < totalArea * 0.98) {
+                    bestArea = area;
+                    bestQuad = approx;
                 }
             }
-            // Fall through to centered crop
         }
-        const result = region
-            ? extractRegion(srcCanvas, region)
-            : centeredCrop(srcCanvas, 7 / 9);
-        const final = document.createElement('canvas');
-        final.width = 350; final.height = 450;
-        final.getContext('2d').drawImage(result, 0, 0, 350, 450);
-        const base64 = final.toDataURL('image/jpeg', 0.85);
-        showCropReview(final, base64);
+        if (!bestQuad) return null;
+        const ordered = orderCorners(bestQuad);
+        const is = 1 / scale;
+        return ordered.map(p => ({ x: p.x * is, y: p.y * is }));
     }
 
-    // ---------- Photo Corner Detection (like doc scanner) ----------
-    // Step 1: Box blur (fast approximation of Gaussian)
+    /* ── Edge Detection Helpers ── */
     function boxBlur(src, w, h, r) {
         const dst = new Float32Array(src.length);
-        const div = 2 * r + 1;
         for (let y = 0; y < h; y++) {
             let s = 0, c = 0;
             for (let x = -r; x <= r; x++) { if (x >= 0 && x < w) { s += src[y * w + x]; c++; } }
@@ -2266,7 +2460,7 @@
         const tmp = new Float32Array(src.length);
         for (let x = 0; x < w; x++) {
             let s = 0, c = 0;
-            for (let y = -r; y <= r; y++) { if (y >= 0 && y < h) { s += dst[(y) * w + x]; c++; } }
+            for (let y = -r; y <= r; y++) { if (y >= 0 && y < h) { s += dst[y * w + x]; c++; } }
             tmp[x] = s / c;
             for (let y = 1; y < h; y++) {
                 const out = y - r - 1, in_ = y + r;
@@ -2278,7 +2472,6 @@
         return tmp;
     }
 
-    // Step 2: Sobel gradient magnitude + direction
     function sobelGradients(src, w, h) {
         const mag = new Float32Array(w * h);
         const dir = new Float32Array(w * h);
@@ -2294,31 +2487,23 @@
         return { mag, dir };
     }
 
-    // Step 3: Non-maximum suppression (thin edges to 1px)
     function nonMaxSuppress(mag, dir, w, h) {
         const out = new Float32Array(mag.length);
         for (let y = 1; y < h - 1; y++) {
             for (let x = 1; x < w - 1; x++) {
                 const i = y * w + x;
-                const a = dir[i] * 180 / Math.PI;
-                const a180 = a < 0 ? a + 180 : a;
+                const a = (dir[i] * 180 / Math.PI + 180) % 180;
                 let p1 = 0, p2 = 0;
-                if ((a180 >= 0 && a180 < 22.5) || (a180 >= 157.5 && a180 <= 180)) {
-                    p1 = mag[i - 1]; p2 = mag[i + 1];
-                } else if (a180 >= 22.5 && a180 < 67.5) {
-                    p1 = mag[i - w - 1]; p2 = mag[i + w + 1];
-                } else if (a180 >= 67.5 && a180 < 112.5) {
-                    p1 = mag[i - w]; p2 = mag[i + w];
-                } else {
-                    p1 = mag[i - w + 1]; p2 = mag[i + w - 1];
-                }
+                if (a < 22.5 || a >= 157.5) { p1 = mag[i - 1]; p2 = mag[i + 1]; }
+                else if (a < 67.5) { p1 = mag[i - w - 1]; p2 = mag[i + w + 1]; }
+                else if (a < 112.5) { p1 = mag[i - w]; p2 = mag[i + w]; }
+                else { p1 = mag[i - w + 1]; p2 = mag[i + w - 1]; }
                 out[i] = (mag[i] >= p1 && mag[i] >= p2) ? mag[i] : 0;
             }
         }
         return out;
     }
 
-    // Step 4: Double threshold + hysteresis
     function hysteresis(nms, w, h, high, low) {
         const edges = new Uint8Array(w * h);
         const stack = [];
@@ -2331,52 +2516,41 @@
             const cur = stack.pop();
             for (const d of dirs) {
                 const ni = cur + d;
-                if (ni >= 0 && ni < edges.length && edges[ni] === 1) {
-                    edges[ni] = 2;
-                    stack.push(ni);
-                }
+                if (ni >= 0 && ni < edges.length && edges[ni] === 1) { edges[ni] = 2; stack.push(ni); }
             }
         }
         for (let i = 0; i < edges.length; i++) edges[i] = edges[i] === 2 ? 1 : 0;
         return edges;
     }
 
-    // Step 5: Border tracing (Moore-Neighbor / modified Suzuki)
-    function traceContour(edges, w, h, startX, startY, visited) {
-        const contour = [];
-        const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
-        let cx = startX, cy = startY, sd = 0;
-        do {
-            contour.push({ x: cx, y: cy });
-            visited[cy * w + cx] = 1;
-            for (let d = 0; d < 8; d++) {
-                const nd = (sd + d) % 8;
-                const nx = cx + dirs[nd][0], ny = cy + dirs[nd][1];
-                if (nx >= 0 && nx < w && ny >= 0 && ny < h && edges[ny * w + nx]) {
-                    cx = nx; cy = ny; sd = (nd + 5) % 8;
-                    break;
-                }
-            }
-            if (contour.length > w * h) break;
-        } while (cx !== startX || cy !== startY);
-        return contour;
-    }
-
     function findContours(edges, w, h) {
         const visited = new Uint8Array(w * h);
         const contours = [];
+        const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
         for (let y = 0; y < h; y++) {
             for (let x = 0; x < w; x++) {
-                if (edges[y * w + x] && !visited[y * w + x]) {
-                    const c = traceContour(edges, w, h, x, y, visited);
-                    if (c.length >= 20) contours.push(c);
-                }
+                if (!edges[y * w + x] || visited[y * w + x]) continue;
+                const contour = [];
+                let cx = x, cy = y, sd = 0, startX = x, startY = y;
+                do {
+                    contour.push({ x: cx, y: cy });
+                    visited[cy * w + cx] = 1;
+                    let found = false;
+                    for (let d = 0; d < 8; d++) {
+                        const nd = (sd + d) % 8;
+                        const nx = cx + dirs[nd][0], ny = cy + dirs[nd][1];
+                        if (nx >= 0 && nx < w && ny >= 0 && ny < h && edges[ny * w + nx]) {
+                            cx = nx; cy = ny; sd = (nd + 5) % 8; found = true; break;
+                        }
+                    }
+                    if (!found || contour.length > w * h) break;
+                } while (cx !== startX || cy !== startY);
+                if (contour.length >= 20) contours.push(contour);
             }
         }
         return contours;
     }
 
-    // Step 6: Douglas-Peucker polygon approximation
     function approxPolyDP(contour, epsilon) {
         if (contour.length <= 2) return contour;
         let dmax = 0, idx = 0;
@@ -2427,81 +2601,18 @@
         const cy = pts.reduce((s, p) => s + p.y, 0) / 4;
         const angles = pts.map(p => ({ ...p, a: Math.atan2(p.y - cy, p.x - cx) }));
         angles.sort((a, b) => a.a - b.a);
-        return [angles[1], angles[0], angles[3], angles[2]]; // TL, TR, BR, BL
+        return [angles[1], angles[0], angles[3], angles[2]];
     }
 
-    // Step 7: Main function — find the largest quadrilateral in the image
-    function findPhotoCorners(srcCanvas) {
-        const w = srcCanvas.width, h = srcCanvas.height;
-        const maxDim = 800;
-        const scale = Math.min(1, maxDim / Math.max(w, h));
-        const sw = Math.round(w * scale), sh = Math.round(h * scale);
-        const c = document.createElement('canvas');
-        c.width = sw; c.height = sh;
-        c.getContext('2d').drawImage(srcCanvas, 0, 0, sw, sh);
-        const d = c.getContext('2d').getImageData(0, 0, sw, sh).data;
-
-        const gray = new Float32Array(sw * sh);
-        for (let i = 0; i < sw * sh; i++) gray[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
-
-        const blurred = boxBlur(gray, sw, sh, 2);
-        const { mag, dir } = sobelGradients(blurred, sw, sh);
-        const nms = nonMaxSuppress(mag, dir, sw, sh);
-
-        // Adaptive thresholds based on median
-        const sorted = nms.filter(v => v > 0).sort((a, b) => a - b);
-        const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
-        const high = median * 3 || 30;
-        const low = high * 0.4;
-
-        const edges = hysteresis(nms, sw, sh, high, low);
-        const contours = findContours(edges, sw, sh);
-
-        let bestQuad = null, bestArea = 0, bestIdx = -1;
-        const totalArea = sw * sh;
-
-        for (let ci = 0; ci < contours.length; ci++) {
-            const ctr = contours[ci];
-            const peri = ctr.reduce((s, p, i) => {
-                const n = (i + 1) % ctr.length;
-                return s + Math.sqrt((ctr[n].x - p.x) ** 2 + (ctr[n].y - p.y) ** 2);
-            }, 0);
-            const approx = approxPolyDP(ctr, peri * 0.02);
-            if (approx.length === 4 && isConvex(approx)) {
-                const area = polygonArea(approx);
-                if (area > bestArea && area > totalArea * 0.03 && area < totalArea * 0.98) {
-                    bestArea = area;
-                    bestQuad = approx;
-                    bestIdx = ci;
-                }
-            }
-        }
-
-        if (!bestQuad) return null;
-
-        const ordered = orderCorners(bestQuad);
-        const is = 1 / scale;
-        return ordered.map(p => ({ x: Math.round(p.x * is), y: Math.round(p.y * is) }));
-    }
-
-    // Step 8: Perspective warp using homography
+    /* ── Perspective Warp (homography + bilinear) ── */
     function perspectiveWarp(srcCanvas, corners, outW, outH) {
-        // corners: [TL, TR, BR, BL]
-        const src = [
-            { x: corners[0].x, y: corners[0].y },
-            { x: corners[1].x, y: corners[1].y },
-            { x: corners[2].x, y: corners[2].y },
-            { x: corners[3].x, y: corners[3].y }
-        ];
+        const src = corners.map(c => ({ x: c.x, y: c.y }));
         const dst = [
             { x: 0, y: 0 }, { x: outW - 1, y: 0 },
             { x: outW - 1, y: outH - 1 }, { x: 0, y: outH - 1 }
         ];
 
-        // Solve for homography: src → dst
-        // Build 8x8 linear system: A * h = b
-        const A = [];
-        const b = [];
+        const A = [], b = [];
         for (let i = 0; i < 4; i++) {
             const sx = src[i].x, sy = src[i].y, dx = dst[i].x, dy = dst[i].y;
             A.push([sx, sy, 1, 0, 0, 0, -sx * dx, -sy * dx]);
@@ -2510,7 +2621,6 @@
             b.push(dy);
         }
 
-        // Gaussian elimination for 8x8
         const mat = A.map((row, i) => [...row, b[i]]);
         for (let col = 0; col < 8; col++) {
             let pivot = col;
@@ -2530,28 +2640,29 @@
         }
         const H = mat.map(row => row[8]);
 
-        // Apply inverse warp
         const outCanvas = document.createElement('canvas');
         outCanvas.width = outW; outCanvas.height = outH;
         const outCtx = outCanvas.getContext('2d');
         const outData = outCtx.createImageData(outW, outH);
         const srcData = srcCanvas.getContext('2d').getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+        const srcW = srcCanvas.width, srcH = srcCanvas.height;
 
         for (let oy = 0; oy < outH; oy++) {
             for (let ox = 0; ox < outW; ox++) {
                 const denom = H[6] * ox + H[7] * oy + 1;
+                if (Math.abs(denom) < 1e-10) continue;
                 const sx = (H[0] * ox + H[1] * oy + H[2]) / denom;
                 const sy = (H[3] * ox + H[4] * oy + H[5]) / denom;
                 const ix = Math.floor(sx), iy = Math.floor(sy);
-                if (ix >= 0 && ix < srcCanvas.width - 1 && iy >= 0 && iy < srcCanvas.height - 1) {
+                if (ix >= 0 && ix < srcW - 1 && iy >= 0 && iy < srcH - 1) {
                     const fx = sx - ix, fy = sy - iy;
-                    const idx = iy * srcCanvas.width + ix;
+                    const idx = iy * srcW + ix;
                     const oi = (oy * outW + ox) * 4;
                     for (let c = 0; c < 4; c++) {
-                        const p00 = srcData.data[(idx) * 4 + c];
+                        const p00 = srcData.data[idx * 4 + c];
                         const p10 = srcData.data[(idx + 1) * 4 + c];
-                        const p01 = srcData.data[(idx + srcCanvas.width) * 4 + c];
-                        const p11 = srcData.data[(idx + srcCanvas.width + 1) * 4 + c];
+                        const p01 = srcData.data[(idx + srcW) * 4 + c];
+                        const p11 = srcData.data[(idx + srcW + 1) * 4 + c];
                         outData.data[oi + c] = Math.round(
                             p00 * (1 - fx) * (1 - fy) + p10 * fx * (1 - fy) +
                             p01 * (1 - fx) * fy + p11 * fx * fy
@@ -2562,50 +2673,6 @@
         }
         outCtx.putImageData(outData, 0, 0);
         return outCanvas;
-    }
-
-    // Fallback: extract a rectangular region
-    function extractRegion(srcCanvas, r) {
-        const c = document.createElement('canvas');
-        c.width = r.right - r.left + 1;
-        c.height = r.bottom - r.top + 1;
-        c.getContext('2d').drawImage(srcCanvas, r.left, r.top, c.width, c.height, 0, 0, c.width, c.height);
-        return c;
-    }
-
-    // Fallback: center crop to a target aspect ratio
-    function centeredCrop(srcCanvas, ratio) {
-        const sw = srcCanvas.width, sh = srcCanvas.height, sr = sw / sh;
-        let cw, ch;
-        if (sr > ratio) { ch = sh; cw = sh * ratio; }
-        else { cw = sw; ch = sw / ratio; }
-        const ox = (sw - cw) / 2, oy = (sh - ch) / 2;
-        const c = document.createElement('canvas');
-        c.width = cw; c.height = ch;
-        c.getContext('2d').drawImage(srcCanvas, ox, oy, cw, ch, 0, 0, cw, ch);
-        return c;
-    }
-
-    function showCropReview(canvas, base64) {
-        const img = document.getElementById('cropPreviewImg');
-        img.src = base64;
-        img.style.display = 'block';
-        document.getElementById('cropReviewModal').dataset.base64 = base64;
-        document.getElementById('cropReviewModal').style.display = 'flex';
-        document.querySelector('#cropReviewModal .crop-btn-accept').textContent = 'Accept (350×450)';
-    }
-
-    function acceptPhoto() {
-        const base64 = document.getElementById('cropReviewModal').dataset.base64;
-        document.getElementById('photo-preview').innerHTML = `<img src="${base64}">`;
-        document.getElementById('photoBase64').value = base64;
-        document.getElementById('cropReviewModal').style.display = 'none';
-        showToast('Photo applied', '#10B981');
-    }
-
-    function retakePhoto() {
-        document.getElementById('cropReviewModal').style.display = 'none';
-        startCamera();
     }
     function toggleSection(el) {
         const body = el.nextElementSibling;
@@ -3698,7 +3765,7 @@
             if (document.getElementById('updateBtn').style.display !== 'none') handleUpdate();
             else handleSave();
         }
-        if (e.key === 'Escape') { closeSearch(); closeColumnSelector(); closePreview(); closeCamera(); document.getElementById('cropReviewModal').style.display='none'; }
+        if (e.key === 'Escape') { closeSearch(); closeColumnSelector(); closePreview(); closeCamera(); document.getElementById('perspEditorModal').style.display='none'; }
         if (e.ctrlKey && e.key === 'f') { e.preventDefault(); openSearch(); }
     });
 
