@@ -7,7 +7,6 @@
     <title>EduData v3.0</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -276,16 +275,9 @@
 
         .up { text-transform: uppercase; }
 
-        label .req {
-            color: var(--error);
-            font-weight: 700;
-            margin-left: 2px;
-        }
-
         /* ---- */
         #studentForm { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
         #studentForm .btn-stack { grid-column: 1/-1; }
-        #studentForm .field-group.full { grid-column: 1/-1; }
         @media(max-width: 580px) { #studentForm { grid-template-columns: 1fr; } }
 
         .form-section {
@@ -666,6 +658,12 @@
             font-family: 'DM Sans', sans-serif;
             background-color: var(--surface);
             color: var(--text-primary);
+        }
+        #tab-dashboard .filter-select {
+            min-height: 30px;
+            min-width: 90px;
+            padding: 4px 22px 4px 8px;
+            font-size: 0.72rem;
         }
 
         /* ---- */
@@ -1197,7 +1195,6 @@
         body.dark-mode .kpi-bpl     { background: linear-gradient(135deg, #7F1D1D, #EF4444) !important; }
 
         body.dark-mode .filter-clear-btn { background: var(--text-muted); }
-        .sort-arrow { font-size:0.65rem; }
         body.dark-mode .btn-photo { background: var(--text-muted); }
         body.dark-mode .btn-photo:hover { background: var(--text-secondary); }
 
@@ -1485,6 +1482,7 @@
         <div style="display:flex;align-items:center;gap:6px;">
             <button class="header-btn" onclick="toggleDarkMode()" id="darkModeToggle" title="Toggle dark/light mode" style="padding:5px 10px;"><i class="fa-solid fa-moon"></i></button>
             <button class="header-btn" onclick="downloadBackup()" title="Download JSON backup"><i class="fa-solid fa-download"></i> Backup</button>
+            <button class="header-btn" onclick="restoreBackup()" title="Restore from JSON backup"><i class="fa-solid fa-upload"></i> Restore</button>
             <span class="header-badge">v 3.0</span>
         </div>
     </header>
@@ -1537,8 +1535,8 @@
                 </div>
                 <div class="section-body">
                     <div class="field-group">
-                        <label>CLASS <span class="req">*</span></label>
-                        <select id="CLASS" required>
+                        <label>CLASS</label>
+                        <select id="CLASS">
                             <option value="">Select</option>
                             <option>IX</option><option>X</option><option>XI</option><option>XII</option>
                         </select>
@@ -1555,16 +1553,16 @@
                         </select>
                     </div>
                     <div class="field-group">
-                        <label>DIVISION <span class="req">*</span></label>
-                        <select id="DIVISION" required>
+                        <label>DIVISION</label>
+                        <select id="DIVISION">
                             <option value="">Select</option>
                             <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option><option>I</option><option>J</option><option>K</option><option>L</option><option>M</option><option>N</option><option>O</option><option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
                         </select>
                     </div>
-                    <div class="field-group"><label>ROLL NO. <span class="req">*</span></label><input type="number" id="ROLL_NO" required></div>
-                    <div class="field-group"><label>GR NO. <span class="req">*</span></label><input type="number" id="GR_NO" required></div>
-                    <div class="field-group"><label>STUDENT NAME (L.C.) <span class="req">*</span></label><input type="text" id="STUDENT_NAME" class="up" required></div>
-                    <div class="field-group"><label>DATE OF ADMISSION <span class="req">*</span></label><input type="date" id="DOA" required></div>
+                    <div class="field-group"><label>ROLL NO.</label><input type="number" id="ROLL_NO"></div>
+                    <div class="field-group"><label>GR NO.</label><input type="number" id="GR_NO"></div>
+                    <div class="field-group"><label>STUDENT NAME (L.C.)</label><input type="text" id="STUDENT_NAME" class="up"></div>
+                    <div class="field-group"><label>DATE OF ADMISSION</label><input type="date" id="DOA"></div>
                     <div class="field-group"><label>PREV. SCHOOL NAME</label><input type="text" id="PREV_SCHOOL" class="up"></div>
                 </div>
             </div>
@@ -1575,11 +1573,11 @@
                     <i class="fa-solid fa-chevron-down section-chevron open"></i>
                 </div>
                 <div class="section-body">
-                    <div class="field-group"><label>GENDER <span class="req">*</span></label><select id="GENDER" required><option value="">Select</option><option>Male</option><option>Female</option></select></div>
-                    <div class="field-group"><label>DATE OF BIRTH (L.C.) <span class="req">*</span></label><input type="date" id="DOB_LC" required></div>
+                    <div class="field-group"><label>GENDER</label><select id="GENDER"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
+                    <div class="field-group"><label>DATE OF BIRTH (L.C.)</label><input type="date" id="DOB_LC"></div>
                     <div class="field-group"><label>PLACE OF BIRTH</label><input type="text" id="POB" class="up"></div>
                     <div class="field-group"><label>CASTE</label><input type="text" id="CASTE" class="up"></div>
-                    <div class="field-group"><label>AADHAR NO. <span class="req">*</span></label><input type="text" id="AADHAR_NO" pattern="[0-9]{12}" maxlength="12" inputmode="numeric" required></div>
+                    <div class="field-group"><label>AADHAR NO.</label><input type="text" id="AADHAR_NO" pattern="[0-9]{12}" maxlength="12" inputmode="numeric"></div>
                     <div class="field-group"><label>NAME ON AADHAR</label><input type="text" id="NAME_AADHAR" class="up"></div>
                     <div class="field-group"><label>DOB ON AADHAR</label><input type="date" id="DOB_AADHAR"></div>
                 </div>
@@ -1593,10 +1591,10 @@
                 <div class="section-body">
                     <div class="field-group"><label>FATHER NAME</label><input type="text" id="FATHER_NAME" class="up"></div>
                     <div class="field-group"><label>MOTHER NAME</label><input type="text" id="MOTHER_NAME" class="up"></div>
-                    <div class="field-group"><label>MOBILE 1 <span class="req">*</span></label><input type="tel" id="MOBILE_1" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" required></div>
+                    <div class="field-group"><label>MOBILE 1</label><input type="tel" id="MOBILE_1" pattern="[0-9]{10}" maxlength="10" inputmode="numeric"></div>
                     <div class="field-group"><label>MOBILE 2</label><input type="tel" id="MOBILE_2" pattern="[0-9]{10}" maxlength="10" inputmode="numeric"></div>
                     <div class="field-group"><label>EMAIL ID</label><input type="email" id="EMAIL_ID"></div>
-                    <div class="field-group"><label>ADDRESS <span class="req">*</span></label><textarea id="ADDRESS" rows="2" class="up" required></textarea></div>
+                    <div class="field-group"><label>ADDRESS</label><textarea id="ADDRESS" rows="2" class="up"></textarea></div>
                 </div>
             </div>
 
@@ -1642,14 +1640,14 @@
                 </div>
                 <div class="section-body">
                     <div class="field-group">
-                        <label>VOCATIONAL SUBJECT AT Xth? <span class="req">*</span></label>
-                        <select id="VOC_STATUS" onchange="toggleVoc()" required>
+                        <label>VOCATIONAL SUBJECT AT Xth?</label>
+                        <select id="VOC_STATUS" onchange="toggleVoc()">
                             <option value="No">No</option><option value="Yes">Yes</option>
                         </select>
                     </div>
                     <div class="field-group">
-                        <label>IS STUDENT OPTED THE VOCATIONAL / OPTIONAL SUBJECT FOR CURRENT YEAR? <span class="req">*</span></label>
-                        <select id="VOC_CURRENT_YR" onchange="toggleVoc()" required>
+                        <label>IS STUDENT OPTED THE VOCATIONAL / OPTIONAL SUBJECT FOR CURRENT YEAR?</label>
+                        <select id="VOC_CURRENT_YR" onchange="toggleVoc()">
                             <option value="No">No</option><option value="Yes">Yes</option>
                         </select>
                     </div>
@@ -1767,6 +1765,7 @@
                 <button onclick="openColumnSelector()" class="filter-clear-btn" style="background:var(--btn-print);"><i class="fa-solid fa-print"></i> Print / Export</button>
                 <button onclick="deleteSelected()" class="filter-clear-btn" style="background:var(--error);"><i class="fa-solid fa-trash"></i> Delete Selected</button>
                 <button onclick="bulkEdit()" class="filter-clear-btn" style="background:var(--warning);"><i class="fa-solid fa-pen"></i> Bulk Edit</button>
+                <button onclick="autoAllotRollNumbers()" class="filter-clear-btn" style="background:var(--primary);color:#fff;"><i class="fa-solid fa-sort-numeric-down"></i> Auto Allot Roll No</button>
             </div>
 
             <!-- Scrollable Table - all fields -->
@@ -1775,46 +1774,46 @@
                     <thead>
                         <tr>
                             <th style="width:40px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
-                            <th onclick="sortTable('ROW_NUM')" style="cursor:pointer;"># <span id="sort-ROW_NUM" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('CLASS')" style="cursor:pointer;">Class <span id="sort-CLASS" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('DIVISION')" style="cursor:pointer;">Div <span id="sort-DIVISION" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('ROLL_NO')" style="cursor:pointer;">Roll <span id="sort-ROLL_NO" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('GR_NO')" style="cursor:pointer;">GR No <span id="sort-GR_NO" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('STUDENT_NAME')" style="cursor:pointer;">Student Name <span id="sort-STUDENT_NAME" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('DOA')" style="cursor:pointer;">DOA <span id="sort-DOA" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('PREV_SCHOOL')" style="cursor:pointer;">Prev School <span id="sort-PREV_SCHOOL" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('GENDER')" style="cursor:pointer;">Gender <span id="sort-GENDER" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('DOB_LC')" style="cursor:pointer;">DOB <span id="sort-DOB_LC" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('POB')" style="cursor:pointer;">POB <span id="sort-POB" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('CASTE')" style="cursor:pointer;">Caste <span id="sort-CASTE" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('AADHAR_NO')" style="cursor:pointer;">Aadhar <span id="sort-AADHAR_NO" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('NAME_AADHAR')" style="cursor:pointer;">Name on Aadhar <span id="sort-NAME_AADHAR" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('DOB_AADHAR')" style="cursor:pointer;">DOB on Aadhar <span id="sort-DOB_AADHAR" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('FATHER_NAME')" style="cursor:pointer;">Father <span id="sort-FATHER_NAME" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('MOTHER_NAME')" style="cursor:pointer;">Mother <span id="sort-MOTHER_NAME" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('MOBILE_1')" style="cursor:pointer;">Mobile 1 <span id="sort-MOBILE_1" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('MOBILE_2')" style="cursor:pointer;">Mobile 2 <span id="sort-MOBILE_2" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('EMAIL_ID')" style="cursor:pointer;">Email <span id="sort-EMAIL_ID" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('ADDRESS')" style="cursor:pointer;">Address <span id="sort-ADDRESS" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('BANK_ACC')" style="cursor:pointer;">Bank Acc <span id="sort-BANK_ACC" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('BANK_NAME')" style="cursor:pointer;">Bank Name <span id="sort-BANK_NAME" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('IFSC')" style="cursor:pointer;">IFSC <span id="sort-IFSC" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('PEN')" style="cursor:pointer;">PEN <span id="sort-PEN" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('APAAR')" style="cursor:pointer;">APAAR <span id="sort-APAAR" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('BLOOD_GROUP')" style="cursor:pointer;">Blood Grp <span id="sort-BLOOD_GROUP" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('HEIGHT')" style="cursor:pointer;">Height <span id="sort-HEIGHT" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('WEIGHT')" style="cursor:pointer;">Weight <span id="sort-WEIGHT" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('PERCENTAGE')" style="cursor:pointer;">Last Class % <span id="sort-PERCENTAGE" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('DISTANCE')" style="cursor:pointer;">Distance <span id="sort-DISTANCE" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('ORPHAN')" style="cursor:pointer;">Orphan <span id="sort-ORPHAN" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('HOSTEL_STUDENT')" style="cursor:pointer;">Hostel <span id="sort-HOSTEL_STUDENT" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('APL_BPL')" style="cursor:pointer;">APL/BPL <span id="sort-APL_BPL" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('REMARK')" style="cursor:pointer;">Remark <span id="sort-REMARK" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('VOC_STATUS')" style="cursor:pointer;">Voc. at Xth <span id="sort-VOC_STATUS" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('VOC_CURRENT_YR')" style="cursor:pointer;">Voc. Current Yr <span id="sort-VOC_CURRENT_YR" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('VOC_NAME')" style="cursor:pointer;">Voc Subject (Xth) <span id="sort-VOC_NAME" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('VOC_NAME_CURRENT')" style="cursor:pointer;">Voc Subject (Current) <span id="sort-VOC_NAME_CURRENT" class="sort-arrow"></span></th>
-                            <th onclick="sortTable('ACADEMIC_YEAR')" style="cursor:pointer;">Acad. Year <span id="sort-ACADEMIC_YEAR" class="sort-arrow"></span></th>
+                            <th>#</th>
+                            <th>Class</th>
+                            <th>Div</th>
+                            <th>Roll</th>
+                            <th>GR No</th>
+                            <th>Student Name</th>
+                            <th>DOA</th>
+                            <th>Prev School</th>
+                            <th>Gender</th>
+                            <th>DOB</th>
+                            <th>POB</th>
+                            <th>Caste</th>
+                            <th>Aadhar</th>
+                            <th>Name on Aadhar</th>
+                            <th>DOB on Aadhar</th>
+                            <th>Father</th>
+                            <th>Mother</th>
+                            <th>Mobile 1</th>
+                            <th>Mobile 2</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Bank Acc</th>
+                            <th>Bank Name</th>
+                            <th>IFSC</th>
+                            <th>PEN</th>
+                            <th>APAAR</th>
+                            <th>Blood Grp</th>
+                            <th>Height</th>
+                            <th>Weight</th>
+                            <th>Last Class %</th>
+                            <th>Distance</th>
+                            <th>Orphan</th>
+                            <th>Hostel</th>
+                            <th>APL/BPL</th>
+                            <th>Remark</th>
+                            <th>Voc. at Xth</th>
+                            <th>Voc. Current Yr</th>
+                            <th>Voc Subject (Xth)</th>
+                            <th>Voc Subject (Current)</th>
+                            <th>Acad. Year</th>
                         </tr>
                     </thead>
                     <tbody id="classTableBody"></tbody>
@@ -1833,27 +1832,48 @@
     <!-- tab -->
     <div class="tab-panel" id="tab-dashboard">
 
+        <!-- Dashboard Filters -->
+        <div class="filter-row" style="justify-content:center;margin-bottom:14px;">
+            <select id="dashboardYearFilter" onchange="renderDashboard()" class="filter-select">
+                <option value="">All Years</option>
+                <option>2023-2024</option><option>2024-2025</option><option>2025-2026</option>
+                <option>2026-2027</option><option>2027-2028</option><option>2028-2029</option>
+                <option>2029-2030</option><option>2030-2031</option><option>2031-2032</option>
+                <option>2032-2033</option><option>2033-2034</option><option>2034-2035</option>
+                <option>2035-2036</option><option>2036-2037</option><option>2037-2038</option>
+                <option>2038-2039</option><option>2039-2040</option>
+            </select>
+            <select id="dashboardClassFilter" onchange="renderDashboard()" class="filter-select">
+                <option value="">All Classes</option>
+                <option>IX</option><option>X</option><option>XI</option><option>XII</option>
+            </select>
+            <select id="dashboardDivFilter" onchange="renderDashboard()" class="filter-select">
+                <option value="">All Divisions</option>
+                <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option><option>I</option><option>J</option><option>K</option><option>L</option><option>M</option><option>N</option><option>O</option><option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
+            </select>
+        </div>
+
         <!-- Row 1: Top KPI cards -->
         <div class="summary-stats" style="flex-wrap:wrap;">
-            <div class="sstat kpi kpi-total">
+            <div class="sstat kpi-total">
                 <h3 id="d-total">0</h3><p>Total Students</p>
             </div>
-            <div class="sstat kpi kpi-boys">
+            <div class="sstat kpi-boys">
                 <h3 id="d-boys">0</h3><p>Boys</p>
             </div>
-            <div class="sstat kpi kpi-girls">
+            <div class="sstat kpi-girls">
                 <h3 id="d-girls">0</h3><p>Girls</p>
             </div>
-            <div class="sstat kpi kpi-orphan">
+            <div class="sstat kpi-orphan">
                 <h3 id="d-orphan">0</h3><p>Orphan</p>
             </div>
-            <div class="sstat kpi kpi-voc">
-                <h3 id="d-voc">0</h3><p>Voc. (Xth/CY)</p>
+            <div class="sstat kpi-voc">
+                <h3 id="d-voc">0</h3><p>Voc. (Current)</p>
             </div>
-            <div class="sstat kpi kpi-hostel">
+            <div class="sstat kpi-hostel">
                 <h3 id="d-hostel">0</h3><p>Hostel</p>
             </div>
-            <div class="sstat kpi kpi-bpl">
+            <div class="sstat kpi-bpl">
                 <h3 id="d-bpl">0</h3><p>BPL</p>
             </div>
         </div>
@@ -1870,7 +1890,7 @@
                             <th style="padding:10px 8px;border:1px solid var(--border);text-align:center;color:var(--primary);font-size:0.78rem;letter-spacing:0.4px;">Boys</th>
                             <th style="padding:10px 8px;border:1px solid var(--border);text-align:center;color:var(--primary);font-size:0.78rem;letter-spacing:0.4px;">Girls</th>
                             <th style="padding:10px 8px;border:1px solid var(--border);text-align:center;color:var(--primary);font-size:0.78rem;letter-spacing:0.4px;">Orphan</th>
-                            <th style="padding:10px 8px;border:1px solid var(--border);text-align:center;color:var(--primary);font-size:0.78rem;letter-spacing:0.4px;">Vocational</th>
+                            <th style="padding:10px 8px;border:1px solid var(--border);text-align:center;color:var(--primary);font-size:0.78rem;letter-spacing:0.4px;">Voc. (Curr.)</th>
                             <th style="padding:10px 8px;border:1px solid var(--border);text-align:center;color:var(--primary);font-size:0.78rem;letter-spacing:0.4px;">Hostel</th>
                             <th style="padding:10px 8px;border:1px solid var(--border);text-align:center;color:var(--primary);font-size:0.78rem;letter-spacing:0.4px;">BPL</th>
                         </tr>
@@ -1897,7 +1917,7 @@
 
             <!-- Vocational subjects -->
             <div class="summary-card" style="flex:1;min-width:240px;margin:0;">
-                <h3 style="margin:0 0 14px 0;color:var(--text-primary);font-family:'Sora',sans-serif;font-size:0.88rem;font-weight:700;">Vocational Subjects</h3>
+                <h3 style="margin:0 0 14px 0;color:var(--text-primary);font-family:'Sora',sans-serif;font-size:0.88rem;font-weight:700;">Current Voc. Subjects</h3>
                 <div id="d-vocsubjects"></div>
             </div>
 
@@ -1913,7 +1933,7 @@
 
     </div><!-- end #tab-dashboard -->
 
-</div><!-- end #main-content -->
+</div><!-- end main wrapper -->
 
 <!-- printArea: hidden normally, shown only during print -->
 <div id="printArea"></div>
@@ -1927,10 +1947,16 @@
         <h3><i class="fa-solid fa-print"></i> Print / Export — Choose Columns</h3>
         <div class="col-select-all-row">
             <label>Select Columns</label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                <input type="checkbox" id="colModalSelectAll" checked onchange="toggleSelectAllColumns()" style="width:16px;height:16px;min-height:auto;accent-color:var(--primary);">
-                Select All
-            </label>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="checkbox" id="colModalSelectAll" checked onchange="toggleSelectAllColumns()" style="width:16px;height:16px;min-height:auto;accent-color:var(--primary);">
+                    Select All
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;">
+                    <input type="checkbox" id="exportSelectedOnly" style="width:16px;height:16px;min-height:auto;accent-color:var(--primary);">
+                    Selected rows only
+                </label>
+            </div>
         </div>
         <div class="col-checkbox-grid" id="colCheckboxGrid"></div>
         <div class="col-btn-stack">
@@ -1959,6 +1985,7 @@
 
 <!-- Hidden file input for Import Excel -->
 <input type="file" id="importFileInput" hidden accept=".xlsx,.xls,.csv" onchange="handleImportFile(event)">
+<input type="file" id="restoreFileInput" hidden accept=".json" onchange="handleRestoreFile(event)">
 
 <!-- Search Modal -->
 <div id="searchModal">
@@ -2014,7 +2041,7 @@
 <div id="bulkEditModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(4px);z-index:1000;padding:15px;justify-content:center;align-items:flex-start;overflow-y:auto;">
     <div class="modal-content" style="max-width:400px;">
         <h3><i class="fa-solid fa-pen"></i> Bulk Edit Selected Records</h3>
-        <div id="bulkEditFields" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div class="field-group"><label>CLASS</label><select id="bulk-CLASS"><option value="">No Change</option><option>IX</option><option>X</option><option>XI</option><option>XII</option></select></div>
             <div class="field-group"><label>DIVISION</label><select id="bulk-DIVISION"><option value="">No Change</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option><option>I</option><option>J</option><option>K</option><option>L</option><option>M</option><option>N</option><option>O</option><option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option></select></div>
             <div class="field-group"><label>ACADEMIC YEAR</label><select id="bulk-ACADEMIC_YEAR"><option value="">No Change</option><option>2023-2024</option><option>2024-2025</option><option>2025-2026</option><option>2026-2027</option><option>2027-2028</option><option>2028-2029</option><option>2029-2030</option><option>2030-2031</option><option>2031-2032</option><option>2032-2033</option><option>2033-2034</option><option>2034-2035</option><option>2035-2036</option><option>2036-2037</option><option>2037-2038</option><option>2038-2039</option><option>2039-2040</option></select></div>
@@ -2104,7 +2131,6 @@
         return parts[2] + '/' + parts[1] + '/' + parts[0];
     }
     function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    let sortState = { col: null, asc: true };
     let currentPage = 1;
     const PAGE_SIZE = 50;
     let formDirty = false;
@@ -2316,22 +2342,22 @@
 
     /* ── CRUD ── */
     function handleSave() {
-        if (!document.getElementById('studentForm').checkValidity()) {
-            document.getElementById('studentForm').reportValidity(); return;
-        }
         const editId = 0;
         const aadharVal = document.getElementById('AADHAR_NO').value.trim();
         if (aadharVal && db.some(s => s.AADHAR_NO === aadharVal && s.id !== editId)) {
-            showToast('Aadhar number already exists!','#F59E0B'); return;
+            showToast('Warning: Aadhar number already exists!', '#F59E0B');
         }
         const rollVal = document.getElementById('ROLL_NO').value.trim();
         const classVal = document.getElementById('CLASS').value;
         const divVal = document.getElementById('DIVISION').value;
         if (rollVal && classVal && db.some(s => s.ROLL_NO === rollVal && s.CLASS === classVal && s.DIVISION === divVal && s.id !== editId)) {
-            showToast('Roll No already exists in this class/division!','#F59E0B'); return;
+            showToast('Warning: Roll No already exists in this class/division!', '#F59E0B');
         }
         const record = { id: Date.now(), photo: document.getElementById('photoBase64').value };
         FIELDS.forEach(f => { if (document.getElementById(f)) record[f] = document.getElementById(f).value; });
+        if (!record['ROLL_NO'] || record['ROLL_NO'] === '') {
+            record['ROLL_NO'] = (Math.max(0, ...db.map(s => parseInt(s.ROLL_NO) || 0)) + 1).toString();
+        }
         ['GENDER','HOSTEL_STUDENT','ORPHAN','VOC_STATUS','VOC_CURRENT_YR','CLASS','APL_BPL','BLOOD_GROUP','DIVISION','ACADEMIC_YEAR'].forEach(f => {
             if (record[f] !== undefined) record[f] = normaliseDropdownValue(f, record[f]);
         });
@@ -2416,20 +2442,17 @@
         closeSearch(); window.scrollTo(0,0);
     }
     function handleUpdate() {
-        if (!document.getElementById('studentForm').checkValidity()) {
-            document.getElementById('studentForm').reportValidity(); return;
-        }
         const id    = parseInt(document.getElementById('editID').value);
         const editId = id;
         const aadharVal = document.getElementById('AADHAR_NO').value.trim();
         if (aadharVal && db.some(s => s.AADHAR_NO === aadharVal && s.id !== editId)) {
-            showToast('Aadhar number already exists!','#F59E0B'); return;
+            showToast('Warning: Aadhar number already exists!', '#F59E0B');
         }
         const rollVal = document.getElementById('ROLL_NO').value.trim();
         const classVal = document.getElementById('CLASS').value;
         const divVal = document.getElementById('DIVISION').value;
         if (rollVal && classVal && db.some(s => s.ROLL_NO === rollVal && s.CLASS === classVal && s.DIVISION === divVal && s.id !== editId)) {
-            showToast('Roll No already exists in this class/division!','#F59E0B'); return;
+            showToast('Warning: Roll No already exists in this class/division!', '#F59E0B');
         }
         const index = db.findIndex(s => s.id === id);
         if (index === -1) { showToast('Record not found','#EF4444'); return; }
@@ -2692,13 +2715,18 @@
             return true;
         });
 
-        if (sortState.col) {
-            rows.sort((a,b) => {
-                const va = (a[sortState.col]||'').toString().toLowerCase();
-                const vb = (b[sortState.col]||'').toString().toLowerCase();
-                return sortState.asc ? va.localeCompare(vb) : vb.localeCompare(va);
-            });
-        }
+        const classOrder = { 'XII': 0, 'XI': 1, 'X': 2, 'IX': 3 };
+        rows.sort((a, b) => {
+            const ca = classOrder[a.CLASS] ?? 99;
+            const cb = classOrder[b.CLASS] ?? 99;
+            if (ca !== cb) return ca - cb;
+            const da = a.DIVISION || '';
+            const dd = b.DIVISION || '';
+            if (da !== dd) return da.localeCompare(dd);
+            const ra = parseInt(a.ROLL_NO) || 0;
+            const rb = parseInt(b.ROLL_NO) || 0;
+            return ra - rb;
+        });
 
         const totalPages = Math.ceil(rows.length / PAGE_SIZE) || 1;
         if (currentPage > totalPages) currentPage = totalPages;
@@ -2801,31 +2829,71 @@
 
     /* ---- */
     function renderDashboard() {
-        const total = db.length;
+        const fYear  = document.getElementById('dashboardYearFilter').value;
+        const fCls   = document.getElementById('dashboardClassFilter').value;
+        const fDiv   = document.getElementById('dashboardDivFilter').value;
+
+        let total = 0, boys = 0, girls = 0, orphan = 0, voc = 0, hostel = 0, bpl = 0;
+        const bgCounts = { 'A+':0,'A-':0,'B+':0,'B-':0,'AB+':0,'AB-':0,'O+':0,'O-':0 };
+        const classData = {};
+        const vocSubs = {};
+
+        db.forEach(s => {
+            if (fYear && s.ACADEMIC_YEAR !== fYear) return;
+            if (fCls  && s.CLASS         !== fCls)  return;
+            if (fDiv  && s.DIVISION      !== fDiv)  return;
+
+            total++;
+            if (s.GENDER === 'Male') boys++;
+            else if (s.GENDER === 'Female') girls++;
+            if (s.ORPHAN === 'Yes') orphan++;
+            if (s.VOC_CURRENT_YR === 'Yes') voc++;
+            if (s.HOSTEL_STUDENT === 'Yes') hostel++;
+            if (s.APL_BPL === 'BPL') bpl++;
+
+            const bg = s.BLOOD_GROUP;
+            if (bg && bg in bgCounts) bgCounts[bg]++;
+
+            const cls = s.CLASS || '';
+            if (!classData[cls]) classData[cls] = { t:0,b:0,g:0,o:0,v:0,h:0,p:0 };
+            const d = classData[cls];
+            d.t++;
+            if (s.GENDER === 'Male') d.b++;
+            else if (s.GENDER === 'Female') d.g++;
+            if (s.ORPHAN === 'Yes') d.o++;
+            if (s.VOC_CURRENT_YR === 'Yes') d.v++;
+            if (s.HOSTEL_STUDENT === 'Yes') d.h++;
+            if (s.APL_BPL === 'BPL') d.p++;
+
+            if (s.VOC_CURRENT_YR === 'Yes' && s.VOC_NAME_CURRENT) {
+                const k = s.VOC_NAME_CURRENT.trim().toUpperCase() || 'UNKNOWN';
+                vocSubs[k] = (vocSubs[k] || 0) + 1;
+            }
+        });
 
         // KPI cards
         document.getElementById('d-total').textContent  = total;
-        document.getElementById('d-boys').textContent   = db.filter(s=>s.GENDER==='Male').length;
-        document.getElementById('d-girls').textContent  = db.filter(s=>s.GENDER==='Female').length;
-        document.getElementById('d-orphan').textContent = db.filter(s=>s.ORPHAN==='Yes').length;
-        document.getElementById('d-voc').textContent    = db.filter(s=>s.VOC_STATUS==='Yes'||s.VOC_CURRENT_YR==='Yes').length;
-        document.getElementById('d-hostel').textContent = db.filter(s=>s.HOSTEL_STUDENT==='Yes').length;
-        document.getElementById('d-bpl').textContent    = db.filter(s=>s.APL_BPL==='BPL').length;
+        document.getElementById('d-boys').textContent   = boys;
+        document.getElementById('d-girls').textContent  = girls;
+        document.getElementById('d-orphan').textContent = orphan;
+        document.getElementById('d-voc').textContent    = voc;
+        document.getElementById('d-hostel').textContent = hostel;
+        document.getElementById('d-bpl').textContent    = bpl;
 
         // Cross-year comparison
-        const years = [...new Set(db.map(s=>s.ACADEMIC_YEAR).filter(Boolean))].sort();
-        const classes = ['IX','X','XI','XII'];
+        const years = fYear ? [fYear] : [...new Set(db.map(s => s.ACADEMIC_YEAR).filter(Boolean))].sort();
+        const classes = fCls ? [fCls] : ['IX','X','XI','XII'];
         if (years.length) {
             let cyHtml = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;"><thead><tr style="background:var(--primary-light);">';
             cyHtml += '<th style="padding:8px;border:1px solid var(--border);text-align:left;color:var(--primary);">Class</th>';
             years.forEach(y => { cyHtml += `<th style="padding:8px;border:1px solid var(--border);text-align:center;color:var(--primary);">${esc(y)}</th>`; });
             cyHtml += '</tr></thead><tbody>';
             classes.forEach((cls,ci) => {
-                const sub = db.filter(s=>s.CLASS===cls);
-                if (!sub.length && !years.some(y => db.some(s=>s.CLASS===cls&&s.ACADEMIC_YEAR===y))) return;
+                const hasData = db.some(s => s.CLASS === cls && (!fYear || s.ACADEMIC_YEAR === fYear) && (!fDiv || s.DIVISION === fDiv));
+                if (!hasData) return;
                 cyHtml += `<tr class="${ci%2===0?'row-even':'row-odd'}"><td class="dash-cell dash-class" style="font-weight:700;">Class ${cls}</td>`;
                 years.forEach(y => {
-                    const cnt = db.filter(s=>s.CLASS===cls&&s.ACADEMIC_YEAR===y).length;
+                    const cnt = db.filter(s => s.CLASS === cls && s.ACADEMIC_YEAR === y && (!fDiv || s.DIVISION === fDiv)).length;
                     cyHtml += `<td class="dash-cell dash-center dash-bold">${cnt||'-'}</td>`;
                 });
                 cyHtml += '</tr>';
@@ -2840,23 +2908,17 @@
         const clsColors = ['#2563EB','#059669','#7C3AED','#DC2626'];
         document.getElementById('d-classrows').innerHTML =
             classes.map((cls,ci) => {
-                const sub    = db.filter(s=>s.CLASS===cls);
-                const boys   = sub.filter(s=>s.GENDER==='Male').length;
-                const girls  = sub.filter(s=>s.GENDER==='Female').length;
-                const orphan = sub.filter(s=>s.ORPHAN==='Yes').length;
-                const voc    = sub.filter(s=>s.VOC_STATUS==='Yes').length;
-                const hostel = sub.filter(s=>s.HOSTEL_STUDENT==='Yes').length;
-                const bpl    = sub.filter(s=>s.APL_BPL==='BPL').length;
-                if (!sub.length) return '';
+                const d = classData[cls];
+                if (!d) return '';
                 return `<tr class="${ci%2===0?'row-even':'row-odd'}">
                     <td class="dash-cell dash-class" style="color:${clsColors[ci]}">Class ${cls}</td>
-                    <td class="dash-cell dash-center dash-bold">${sub.length}</td>
-                    <td class="dash-cell dash-center dash-bold" style="color:#0369a1">${boys}</td>
-                    <td class="dash-cell dash-center dash-bold" style="color:#be185d">${girls}</td>
-                    <td class="dash-cell dash-center">${orphan}</td>
-                    <td class="dash-cell dash-center">${voc}</td>
-                    <td class="dash-cell dash-center">${hostel}</td>
-                    <td class="dash-cell dash-center">${bpl}</td>
+                    <td class="dash-cell dash-center dash-bold">${d.t}</td>
+                    <td class="dash-cell dash-center dash-bold" style="color:#0369a1">${d.b}</td>
+                    <td class="dash-cell dash-center dash-bold" style="color:#be185d">${d.g}</td>
+                    <td class="dash-cell dash-center">${d.o}</td>
+                    <td class="dash-cell dash-center">${d.v}</td>
+                    <td class="dash-cell dash-center">${d.h}</td>
+                    <td class="dash-cell dash-center">${d.p}</td>
                 </tr>`;
             }).join('') ||
             `<tr><td colspan="8" class="tbl-empty">No records yet.</td></tr>`;
@@ -2864,7 +2926,7 @@
         // Blood group mini bars
         const bloods = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
         const bgColors = ['#2563EB','#3b82f6','#059669','#10b981','#7C3AED','#8b5cf6','#DC2626','#f87171'];
-        const bCounts = bloods.map(bg => db.filter(s=>s.BLOOD_GROUP===bg).length);
+        const bCounts = bloods.map(bg => bgCounts[bg]);
         const bMax = Math.max(1, ...bCounts);
         document.getElementById('d-blood').innerHTML = bloods.map((bg,i) =>
             `<div class="d-bar-row">
@@ -2874,8 +2936,7 @@
             </div>`).join('');
 
         // APL vs BPL bars
-        const apl = db.filter(s=>s.APL_BPL==='APL').length;
-        const bpl = db.filter(s=>s.APL_BPL==='BPL').length;
+        const apl = total - bpl;
         const abMax = Math.max(1, apl, bpl);
         document.getElementById('d-aplbpl').innerHTML =
             `<div class="d-bar-row">
@@ -2889,16 +2950,7 @@
                 <span class="d-bar-count">${bpl}</span>
             </div>`;
 
-        // Vocational subjects
-        const vocSubs = {};
-        db.filter(s=>s.VOC_STATUS==='Yes'&&s.VOC_NAME).forEach(s=>{
-            const k = s.VOC_NAME.trim().toUpperCase()||'UNKNOWN';
-            vocSubs[k] = (vocSubs[k]||0)+1;
-        });
-        db.filter(s=>s.VOC_CURRENT_YR==='Yes'&&s.VOC_NAME_CURRENT).forEach(s=>{
-            const k = s.VOC_NAME_CURRENT.trim().toUpperCase()||'UNKNOWN';
-            vocSubs[k] = (vocSubs[k]||0)+1;
-        });
+        // Vocational subjects (Current Year only)
         const vocEntries = Object.entries(vocSubs).sort((a,b)=>b[1]-a[1]);
         const vsMax = vocEntries.length ? vocEntries[0][1] : 1;
         const vsColors = ['#2563EB','#059669','#7C3AED','#DC2626','#d97706','#0891b2'];
@@ -3042,10 +3094,19 @@
         document.getElementById('previewModal').style.display = 'none';
     }
 
+    function getExportRows() {
+        const rows = getFilteredRows();
+        const cb = document.getElementById('exportSelectedOnly');
+        if (!cb || !cb.checked) return rows;
+        const ids = [...document.querySelectorAll('.row-select:checked')].map(ch => parseInt(ch.value));
+        if (!ids.length) { showToast('No rows selected! Check rows in the table first.','#F59E0B'); return []; }
+        return rows.filter(s => ids.includes(s.id));
+    }
+
     function previewSelectedColumns() {
         const cols = getSelectedColumns();
         if (!cols.length) { showToast('Select at least one column!','#F59E0B'); return; }
-        const rows = getFilteredRows();
+        const rows = getExportRows();
         if (!rows.length) { showToast('No data to preview!','#F59E0B'); return; }
 
         const yearVal = document.getElementById('tbl-year').value;
@@ -3110,7 +3171,7 @@
         closePreview();
         const cols = getSelectedColumns();
         if (!cols.length) { showToast('Select at least one column!','#F59E0B'); return; }
-        const rows = getFilteredRows();
+        const rows = getExportRows();
         if (!rows.length) { showToast('No data to print!','#F59E0B'); return; }
 
         const yearVal = document.getElementById('tbl-year').value;
@@ -3141,7 +3202,7 @@
         closePreview();
         const cols = getSelectedColumns();
         if (!cols.length) { showToast('Select at least one column!','#F59E0B'); return; }
-        const rows = getFilteredRows();
+        const rows = getExportRows();
         if (!rows.length) { showToast('No data to export!','#F59E0B'); return; }
 
         const dateFields = ['DOA','DOB_LC','DOB_AADHAR'];
@@ -3189,6 +3250,43 @@
         URL.revokeObjectURL(a.href);
         showToast(`✅ Downloaded ${db.length} records as JSON`);
     }
+
+    function restoreBackup() {
+        document.getElementById('restoreFileInput').click();
+    }
+
+    function handleRestoreFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        event.target.value = '';
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!Array.isArray(data)) {
+                    showToast('Invalid backup file: expected an array of records.', '#EF4444');
+                    return;
+                }
+                if (!data.length) {
+                    showToast('Backup file is empty.', '#F59E0B');
+                    return;
+                }
+                if (!confirm(`Restore ${data.length} records? This will REPLACE all current data (${db.length} records).`)) return;
+
+                db = data;
+                fixExistingData();
+                try { localStorage.setItem('eduDB_v4_final', JSON.stringify(db)); } catch(err) {
+                    showToast('Storage full! Export backup and clear data.', '#EF4444'); return;
+                }
+                updateDashboard();
+                showToast(`✅ Restored ${db.length} records from backup!`, '#065F46');
+            } catch(err) {
+                showToast('❌ Restore failed: Invalid JSON file.', '#EF4444');
+            }
+        };
+        reader.readAsText(file);
+    }
     /* ---- */
 
     function clearTableFilters() {
@@ -3199,19 +3297,34 @@
         renderClassTable();
     }
 
-    /* ---- Sort ---- */
-    function sortTable(field) {
-        if (sortState.col === field) {
-            sortState.asc = !sortState.asc;
-        } else {
-            sortState.col = field;
-            sortState.asc = true;
-        }
-        document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '');
-        const arrowEl = document.getElementById('sort-'+field);
-        if (arrowEl) arrowEl.textContent = sortState.asc ? ' ▲' : ' ▼';
-        currentPage = 1;
+    /* ---- Auto Allot Roll Numbers ---- */
+    function autoAllotRollNumbers() {
+        if (!db.length) { showToast('No records to allot!','#F59E0B'); return; }
+        if (!confirm('This will reassign all roll numbers (Female A-Z first, then Male A-Z) per Class+Division. Continue?')) return;
+
+        const groups = {};
+        db.forEach(s => {
+            const key = (s.CLASS||'') + '|' + (s.DIVISION||'');
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s);
+        });
+
+        Object.values(groups).forEach(group => {
+            group.sort((a, b) => {
+                if ((a.GENDER||'') !== (b.GENDER||'')) {
+                    return a.GENDER === 'Female' ? -1 : 1;
+                }
+                const na = (a.STUDENT_NAME||'').toLowerCase();
+                const nb = (b.STUDENT_NAME||'').toLowerCase();
+                return na.localeCompare(nb);
+            });
+            group.forEach((s, i) => { s.ROLL_NO = (i + 1).toString(); });
+        });
+
+        try { localStorage.setItem('eduDB_v4_final', JSON.stringify(db)); } catch(e) { showToast('Storage full! Export backup and clear data.','#EF4444'); }
         renderClassTable();
+        updateDashboard();
+        showToast('Roll numbers allotted successfully!');
     }
 
     /* ---- Bulk select/delete ---- */
