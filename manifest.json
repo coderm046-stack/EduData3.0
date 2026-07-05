@@ -1,0 +1,9 @@
+{
+  "name": "EduData",
+  "short_name": "EduData",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1E3A8A",
+  "theme_color": "#1E3A8A",
+  "icons": []
+}
