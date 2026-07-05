@@ -2224,7 +2224,19 @@
                 }
             } catch (_) {}
         }
-        if (!region) region = detectPhotoRegion(srcCanvas);
+        if (!region) {
+            // Try corner detection + perspective warp (like a doc scanner)
+            const corners = findPhotoCorners(srcCanvas);
+            if (corners) {
+                const final = perspectiveWarp(srcCanvas, corners, 350, 450);
+                if (final) {
+                    const base64 = final.toDataURL('image/jpeg', 0.85);
+                    showCropReview(final, base64);
+                    return;
+                }
+            }
+            // Fall through to centered crop
+        }
         const result = region
             ? extractRegion(srcCanvas, region)
             : centeredCrop(srcCanvas, 7 / 9);
@@ -2235,67 +2247,324 @@
         showCropReview(final, base64);
     }
 
-    function detectPhotoRegion(srcCanvas) {
-        const srcW = srcCanvas.width, srcH = srcCanvas.height;
-        const scale = Math.min(1, 500 / Math.max(srcW, srcH));
-        const pw = Math.round(srcW * scale), ph = Math.round(srcH * scale);
-        const tc = document.createElement('canvas');
-        tc.width = pw; tc.height = ph;
-        tc.getContext('2d').drawImage(srcCanvas, 0, 0, pw, ph);
-        const d = tc.getContext('2d').getImageData(0, 0, pw, ph).data;
-        const gray = new Float32Array(pw * ph);
-        for (let i = 0; i < pw * ph; i++) {
-            const p = i * 4;
-            gray[i] = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
-        }
-        const blurred = new Float32Array(pw * ph);
-        for (let y = 0; y < ph; y++) {
-            for (let x = 0; x < pw; x++) {
-                let s = 0, c = 0;
-                for (let dy = -2; dy <= 2; dy++) {
-                    for (let dx = -2; dx <= 2; dx++) {
-                        const nx = x + dx, ny = y + dy;
-                        if (nx >= 0 && nx < pw && ny >= 0 && ny < ph) { s += gray[ny * pw + nx]; c++; }
-                    }
-                }
-                blurred[y * pw + x] = s / c;
+    // ---------- Photo Corner Detection (like doc scanner) ----------
+    // Step 1: Box blur (fast approximation of Gaussian)
+    function boxBlur(src, w, h, r) {
+        const dst = new Float32Array(src.length);
+        const div = 2 * r + 1;
+        for (let y = 0; y < h; y++) {
+            let s = 0, c = 0;
+            for (let x = -r; x <= r; x++) { if (x >= 0 && x < w) { s += src[y * w + x]; c++; } }
+            dst[y * w] = s / c;
+            for (let x = 1; x < w; x++) {
+                const out = x - r - 1, in_ = x + r;
+                if (out >= 0) { s -= src[y * w + out]; c--; }
+                if (in_ < w) { s += src[y * w + in_]; c++; }
+                dst[y * w + x] = s / c;
             }
         }
-        const edges = new Float32Array(pw * ph);
-        let maxE = 0;
-        for (let y = 1; y < ph - 1; y++) {
-            for (let x = 1; x < pw - 1; x++) {
-                const i = y * pw + x;
-                const gx = -blurred[i - pw - 1] + blurred[i - pw + 1] - 2 * blurred[i - 1] + 2 * blurred[i + 1] - blurred[i + pw - 1] + blurred[i + pw + 1];
-                const gy = -blurred[i - pw - 1] - 2 * blurred[i - pw] - blurred[i - pw + 1] + blurred[i + pw - 1] + 2 * blurred[i + pw] + blurred[i + pw + 1];
-                edges[i] = Math.sqrt(gx * gx + gy * gy);
-                if (edges[i] > maxE) maxE = edges[i];
+        const tmp = new Float32Array(src.length);
+        for (let x = 0; x < w; x++) {
+            let s = 0, c = 0;
+            for (let y = -r; y <= r; y++) { if (y >= 0 && y < h) { s += dst[(y) * w + x]; c++; } }
+            tmp[x] = s / c;
+            for (let y = 1; y < h; y++) {
+                const out = y - r - 1, in_ = y + r;
+                if (out >= 0) { s -= dst[out * w + x]; c--; }
+                if (in_ < h) { s += dst[in_ * w + x]; c++; }
+                tmp[y * w + x] = s / c;
             }
         }
-        if (maxE === 0) return null;
-        const thr = maxE * 0.25;
-        const bin = new Uint8Array(pw * ph);
-        for (let i = 0; i < edges.length; i++) bin[i] = edges[i] > thr ? 1 : 0;
-        const hp = new Float32Array(ph), vp = new Float32Array(pw);
-        for (let y = 0; y < ph; y++) { let s = 0; for (let x = 0; x < pw; x++) s += bin[y * pw + x]; hp[y] = s; }
-        for (let x = 0; x < pw; x++) { let s = 0; for (let y = 0; y < ph; y++) s += bin[y * pw + x]; vp[x] = s; }
-        const et = Math.max(pw, ph) * 0.12;
-        let t = 0, b = ph - 1, l = 0, r = pw - 1;
-        for (let y = 0; y < ph; y++) { if (hp[y] > et) { t = y; break; } }
-        for (let y = ph - 1; y >= 0; y--) { if (hp[y] > et) { b = y; break; } }
-        for (let x = 0; x < pw; x++) { if (vp[x] > et) { l = x; break; } }
-        for (let x = pw - 1; x >= 0; x--) { if (vp[x] > et) { r = x; break; } }
-        const dw = r - l + 1, dh = b - t + 1, da = dw * dh, ia = pw * ph;
-        if (da < ia * 0.01 || da > ia * 0.98 || dw < 20 || dh < 20) return null;
-        const is = 1 / scale, mg = 8 * is;
-        return {
-            top: Math.max(0, Math.round(t * is - mg)),
-            bottom: Math.min(srcH - 1, Math.round(b * is + mg)),
-            left: Math.max(0, Math.round(l * is - mg)),
-            right: Math.min(srcW - 1, Math.round(r * is + mg))
-        };
+        return tmp;
     }
 
+    // Step 2: Sobel gradient magnitude + direction
+    function sobelGradients(src, w, h) {
+        const mag = new Float32Array(w * h);
+        const dir = new Float32Array(w * h);
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const i = y * w + x;
+                const gx = -src[i - w - 1] + src[i - w + 1] - 2 * src[i - 1] + 2 * src[i + 1] - src[i + w - 1] + src[i + w + 1];
+                const gy = -src[i - w - 1] - 2 * src[i - w] - src[i - w + 1] + src[i + w - 1] + 2 * src[i + w] + src[i + w + 1];
+                mag[i] = Math.sqrt(gx * gx + gy * gy);
+                dir[i] = Math.atan2(gy, gx);
+            }
+        }
+        return { mag, dir };
+    }
+
+    // Step 3: Non-maximum suppression (thin edges to 1px)
+    function nonMaxSuppress(mag, dir, w, h) {
+        const out = new Float32Array(mag.length);
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const i = y * w + x;
+                const a = dir[i] * 180 / Math.PI;
+                const a180 = a < 0 ? a + 180 : a;
+                let p1 = 0, p2 = 0;
+                if ((a180 >= 0 && a180 < 22.5) || (a180 >= 157.5 && a180 <= 180)) {
+                    p1 = mag[i - 1]; p2 = mag[i + 1];
+                } else if (a180 >= 22.5 && a180 < 67.5) {
+                    p1 = mag[i - w - 1]; p2 = mag[i + w + 1];
+                } else if (a180 >= 67.5 && a180 < 112.5) {
+                    p1 = mag[i - w]; p2 = mag[i + w];
+                } else {
+                    p1 = mag[i - w + 1]; p2 = mag[i + w - 1];
+                }
+                out[i] = (mag[i] >= p1 && mag[i] >= p2) ? mag[i] : 0;
+            }
+        }
+        return out;
+    }
+
+    // Step 4: Double threshold + hysteresis
+    function hysteresis(nms, w, h, high, low) {
+        const edges = new Uint8Array(w * h);
+        const stack = [];
+        for (let i = 0; i < nms.length; i++) {
+            if (nms[i] >= high) { edges[i] = 2; stack.push(i); }
+            else if (nms[i] >= low) edges[i] = 1;
+        }
+        const dirs = [-w - 1, -w, -w + 1, -1, 1, w - 1, w, w + 1];
+        while (stack.length) {
+            const cur = stack.pop();
+            for (const d of dirs) {
+                const ni = cur + d;
+                if (ni >= 0 && ni < edges.length && edges[ni] === 1) {
+                    edges[ni] = 2;
+                    stack.push(ni);
+                }
+            }
+        }
+        for (let i = 0; i < edges.length; i++) edges[i] = edges[i] === 2 ? 1 : 0;
+        return edges;
+    }
+
+    // Step 5: Border tracing (Moore-Neighbor / modified Suzuki)
+    function traceContour(edges, w, h, startX, startY, visited) {
+        const contour = [];
+        const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
+        let cx = startX, cy = startY, sd = 0;
+        do {
+            contour.push({ x: cx, y: cy });
+            visited[cy * w + cx] = 1;
+            for (let d = 0; d < 8; d++) {
+                const nd = (sd + d) % 8;
+                const nx = cx + dirs[nd][0], ny = cy + dirs[nd][1];
+                if (nx >= 0 && nx < w && ny >= 0 && ny < h && edges[ny * w + nx]) {
+                    cx = nx; cy = ny; sd = (nd + 5) % 8;
+                    break;
+                }
+            }
+            if (contour.length > w * h) break;
+        } while (cx !== startX || cy !== startY);
+        return contour;
+    }
+
+    function findContours(edges, w, h) {
+        const visited = new Uint8Array(w * h);
+        const contours = [];
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (edges[y * w + x] && !visited[y * w + x]) {
+                    const c = traceContour(edges, w, h, x, y, visited);
+                    if (c.length >= 20) contours.push(c);
+                }
+            }
+        }
+        return contours;
+    }
+
+    // Step 6: Douglas-Peucker polygon approximation
+    function approxPolyDP(contour, epsilon) {
+        if (contour.length <= 2) return contour;
+        let dmax = 0, idx = 0;
+        const first = contour[0], last = contour[contour.length - 1];
+        for (let i = 1; i < contour.length - 1; i++) {
+            const d = pointLineDist(contour[i], first, last);
+            if (d > dmax) { dmax = d; idx = i; }
+        }
+        if (dmax > epsilon) {
+            const left = approxPolyDP(contour.slice(0, idx + 1), epsilon);
+            const right = approxPolyDP(contour.slice(idx), epsilon);
+            return left.slice(0, -1).concat(right);
+        }
+        return [first, last];
+    }
+
+    function pointLineDist(p, a, b) {
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) return Math.sqrt((p.x - a.x) ** 2 + (p.y - a.y) ** 2);
+        return Math.abs(dy * p.x - dx * p.y + b.x * a.y - b.y * a.x) / len;
+    }
+
+    function polygonArea(pts) {
+        let a = 0;
+        for (let i = 0; i < pts.length; i++) {
+            const j = (i + 1) % pts.length;
+            a += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+        }
+        return Math.abs(a) / 2;
+    }
+
+    function isConvex(pts) {
+        let sign = 0;
+        for (let i = 0; i < 4; i++) {
+            const j = (i + 1) % 4, k = (i + 2) % 4;
+            const cross = (pts[j].x - pts[i].x) * (pts[k].y - pts[j].y) - (pts[j].y - pts[i].y) * (pts[k].x - pts[j].x);
+            if (cross !== 0) {
+                if (sign === 0) sign = cross > 0 ? 1 : -1;
+                else if ((cross > 0 ? 1 : -1) !== sign) return false;
+            }
+        }
+        return true;
+    }
+
+    function orderCorners(pts) {
+        const cx = pts.reduce((s, p) => s + p.x, 0) / 4;
+        const cy = pts.reduce((s, p) => s + p.y, 0) / 4;
+        const angles = pts.map(p => ({ ...p, a: Math.atan2(p.y - cy, p.x - cx) }));
+        angles.sort((a, b) => a.a - b.a);
+        return [angles[1], angles[0], angles[3], angles[2]]; // TL, TR, BR, BL
+    }
+
+    // Step 7: Main function — find the largest quadrilateral in the image
+    function findPhotoCorners(srcCanvas) {
+        const w = srcCanvas.width, h = srcCanvas.height;
+        const maxDim = 800;
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        const sw = Math.round(w * scale), sh = Math.round(h * scale);
+        const c = document.createElement('canvas');
+        c.width = sw; c.height = sh;
+        c.getContext('2d').drawImage(srcCanvas, 0, 0, sw, sh);
+        const d = c.getContext('2d').getImageData(0, 0, sw, sh).data;
+
+        const gray = new Float32Array(sw * sh);
+        for (let i = 0; i < sw * sh; i++) gray[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+
+        const blurred = boxBlur(gray, sw, sh, 2);
+        const { mag, dir } = sobelGradients(blurred, sw, sh);
+        const nms = nonMaxSuppress(mag, dir, sw, sh);
+
+        // Adaptive thresholds based on median
+        const sorted = nms.filter(v => v > 0).sort((a, b) => a - b);
+        const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+        const high = median * 3 || 30;
+        const low = high * 0.4;
+
+        const edges = hysteresis(nms, sw, sh, high, low);
+        const contours = findContours(edges, sw, sh);
+
+        let bestQuad = null, bestArea = 0, bestIdx = -1;
+        const totalArea = sw * sh;
+
+        for (let ci = 0; ci < contours.length; ci++) {
+            const ctr = contours[ci];
+            const peri = ctr.reduce((s, p, i) => {
+                const n = (i + 1) % ctr.length;
+                return s + Math.sqrt((ctr[n].x - p.x) ** 2 + (ctr[n].y - p.y) ** 2);
+            }, 0);
+            const approx = approxPolyDP(ctr, peri * 0.02);
+            if (approx.length === 4 && isConvex(approx)) {
+                const area = polygonArea(approx);
+                if (area > bestArea && area > totalArea * 0.03 && area < totalArea * 0.98) {
+                    bestArea = area;
+                    bestQuad = approx;
+                    bestIdx = ci;
+                }
+            }
+        }
+
+        if (!bestQuad) return null;
+
+        const ordered = orderCorners(bestQuad);
+        const is = 1 / scale;
+        return ordered.map(p => ({ x: Math.round(p.x * is), y: Math.round(p.y * is) }));
+    }
+
+    // Step 8: Perspective warp using homography
+    function perspectiveWarp(srcCanvas, corners, outW, outH) {
+        // corners: [TL, TR, BR, BL]
+        const src = [
+            { x: corners[0].x, y: corners[0].y },
+            { x: corners[1].x, y: corners[1].y },
+            { x: corners[2].x, y: corners[2].y },
+            { x: corners[3].x, y: corners[3].y }
+        ];
+        const dst = [
+            { x: 0, y: 0 }, { x: outW - 1, y: 0 },
+            { x: outW - 1, y: outH - 1 }, { x: 0, y: outH - 1 }
+        ];
+
+        // Solve for homography: src → dst
+        // Build 8x8 linear system: A * h = b
+        const A = [];
+        const b = [];
+        for (let i = 0; i < 4; i++) {
+            const sx = src[i].x, sy = src[i].y, dx = dst[i].x, dy = dst[i].y;
+            A.push([sx, sy, 1, 0, 0, 0, -sx * dx, -sy * dx]);
+            b.push(dx);
+            A.push([0, 0, 0, sx, sy, 1, -sx * dy, -sy * dy]);
+            b.push(dy);
+        }
+
+        // Gaussian elimination for 8x8
+        const mat = A.map((row, i) => [...row, b[i]]);
+        for (let col = 0; col < 8; col++) {
+            let pivot = col;
+            for (let row = col + 1; row < 8; row++) {
+                if (Math.abs(mat[row][col]) > Math.abs(mat[pivot][col])) pivot = row;
+            }
+            [mat[col], mat[pivot]] = [mat[pivot], mat[col]];
+            const pv = mat[col][col];
+            if (Math.abs(pv) < 1e-10) return null;
+            for (let j = col; j <= 8; j++) mat[col][j] /= pv;
+            for (let row = 0; row < 8; row++) {
+                if (row !== col) {
+                    const factor = mat[row][col];
+                    for (let j = col; j <= 8; j++) mat[row][j] -= factor * mat[col][j];
+                }
+            }
+        }
+        const H = mat.map(row => row[8]);
+
+        // Apply inverse warp
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = outW; outCanvas.height = outH;
+        const outCtx = outCanvas.getContext('2d');
+        const outData = outCtx.createImageData(outW, outH);
+        const srcData = srcCanvas.getContext('2d').getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+
+        for (let oy = 0; oy < outH; oy++) {
+            for (let ox = 0; ox < outW; ox++) {
+                const denom = H[6] * ox + H[7] * oy + 1;
+                const sx = (H[0] * ox + H[1] * oy + H[2]) / denom;
+                const sy = (H[3] * ox + H[4] * oy + H[5]) / denom;
+                const ix = Math.floor(sx), iy = Math.floor(sy);
+                if (ix >= 0 && ix < srcCanvas.width - 1 && iy >= 0 && iy < srcCanvas.height - 1) {
+                    const fx = sx - ix, fy = sy - iy;
+                    const idx = iy * srcCanvas.width + ix;
+                    const oi = (oy * outW + ox) * 4;
+                    for (let c = 0; c < 4; c++) {
+                        const p00 = srcData.data[(idx) * 4 + c];
+                        const p10 = srcData.data[(idx + 1) * 4 + c];
+                        const p01 = srcData.data[(idx + srcCanvas.width) * 4 + c];
+                        const p11 = srcData.data[(idx + srcCanvas.width + 1) * 4 + c];
+                        outData.data[oi + c] = Math.round(
+                            p00 * (1 - fx) * (1 - fy) + p10 * fx * (1 - fy) +
+                            p01 * (1 - fx) * fy + p11 * fx * fy
+                        );
+                    }
+                }
+            }
+        }
+        outCtx.putImageData(outData, 0, 0);
+        return outCanvas;
+    }
+
+    // Fallback: extract a rectangular region
     function extractRegion(srcCanvas, r) {
         const c = document.createElement('canvas');
         c.width = r.right - r.left + 1;
@@ -2304,6 +2573,7 @@
         return c;
     }
 
+    // Fallback: center crop to a target aspect ratio
     function centeredCrop(srcCanvas, ratio) {
         const sw = srcCanvas.width, sh = srcCanvas.height, sr = sw / sh;
         let cw, ch;
@@ -3434,7 +3704,7 @@
 
 </script>
 
-    
+
 
 <!-- PWA: Service Worker Registration -->
 <script>
