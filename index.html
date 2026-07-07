@@ -2079,7 +2079,7 @@
         if (parts.length !== 3) return val;
         return parts[2] + '/' + parts[1] + '/' + parts[0];
     }
-    function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
     let currentPage = 1;
     const PAGE_SIZE = 50;
     let formDirty = false;
@@ -2195,7 +2195,7 @@
 
     /* ── CRUD ── */
     function handleSave() {
-        const editId = 0;
+        const editId = parseInt(document.getElementById('editID').value) || 0;
         const aadharVal = document.getElementById('AADHAR_NO').value.trim();
         if (aadharVal && db.some(s => s.AADHAR_NO === aadharVal && s.id !== editId)) {
             showToast('Warning: Aadhar number already exists!', '#F59E0B');
@@ -2228,7 +2228,6 @@
         document.getElementById('photo-preview').innerHTML = '<span>3.5 x 4.5 cm Photo<br>Required</span>';
         document.getElementById('photoBase64').value = '';
         document.getElementById('editID').value = '';
-        document.getElementById('VOC_CURRENT_YR') && (document.getElementById('VOC_CURRENT_YR').value = 'No');
         toggleVoc();
         document.getElementById('saveBtn').style.display   = 'flex';
         document.getElementById('updateBtn').style.display = 'none';
@@ -2428,6 +2427,7 @@
                 FIELDS.forEach(f => { fieldMap[norm(f)] = f; });
 
                 let imported = 0, skipped = 0;
+                const pendingRecords = [];
 
                 rows.forEach((row, i) => {
                     const record = {
@@ -2466,12 +2466,13 @@
                     });
                     if (!record['APL_BPL']) record['APL_BPL'] = 'APL';
 
-                    if (hasData) { db.push(record); imported++; }
+                    if (hasData) { imported++; pendingRecords.push(record); }
                     else         { skipped++; }
                 });
 
                 if (imported === 0) { showToast('No valid records found!','#F59E0B'); return; }
-                if (!confirm(`Import ${imported} record${imported>1?'s':''}?`)) { db = db.slice(0, db.length - imported); return; }
+                if (!confirm(`Import ${imported} record${imported>1?'s':''}?`)) { return; }
+                pendingRecords.forEach(r => db.push(r));
 
                 try { localStorage.setItem('eduDB_v4_final', JSON.stringify(db)); } catch(e) { showToast('Storage full! Export backup and clear data.','#EF4444'); }
                 updateDashboard();
@@ -2654,28 +2655,7 @@
     function changePage(delta) {
         const newPage = currentPage + delta;
         if (newPage < 1) return;
-        const fCls    = document.getElementById('tbl-class').value;
-        const fDiv    = document.getElementById('tbl-div').value;
-        const fYear   = document.getElementById('tbl-year').value;
-        const fGender = document.getElementById('tbl-gender').value;
-        const fVoc    = document.getElementById('tbl-voc').value;
-        const fVocCur = document.getElementById('tbl-voc-current').value;
-        const fOrphan = document.getElementById('tbl-orphan').value;
-        const fHostel = document.getElementById('tbl-hostel').value;
-        const fApl    = document.getElementById('tbl-aplbpl').value;
-        let rows = db.filter(s => {
-            const hostelYes = s.HOSTEL_STUDENT==='Yes';
-            if (fCls    && s.CLASS         !== fCls)    return false;
-            if (fDiv    && s.DIVISION       !== fDiv)    return false;
-            if (fYear   && s.ACADEMIC_YEAR !== fYear)   return false;
-            if (fGender && s.GENDER        !== fGender) return false;
-            if (fVoc    && s.VOC_STATUS    !== fVoc)    return false;
-            if (fVocCur && s.VOC_CURRENT_YR !== fVocCur) return false;
-            if (fOrphan && s.ORPHAN        !== fOrphan) return false;
-            if (fHostel && (fHostel==='Yes') !== hostelYes) return false;
-            if (fApl    && s.APL_BPL       !== fApl)    return false;
-            return true;
-        });
+        const rows = getFilteredRows();
         const totalPages = Math.ceil(rows.length / PAGE_SIZE) || 1;
         if (newPage <= totalPages) { currentPage = newPage; renderClassTable(); }
     }
@@ -2952,7 +2932,7 @@
         const cb = document.getElementById('exportSelectedOnly');
         if (!cb || !cb.checked) return rows;
         const ids = [...document.querySelectorAll('.row-select:checked')].map(ch => parseInt(ch.value));
-        if (!ids.length) { showToast('No rows selected! Check rows in the table first.','#F59E0B'); return []; }
+        if (!ids.length) { return []; }
         return rows.filter(s => ids.includes(s.id));
     }
 
@@ -3244,7 +3224,7 @@
         const csvRows = db.map(s => {
             return FIELDS.map(f => {
                 let val = dateFields.includes(f) ? formatDate(s[f]) : (s[f]||'');
-                val = String(val).replace(/"/g,'""');
+                val = String(val).replace(/"/g,'""').replace(/\r?\n|\r/g,' ');
                 return `"${val}"`;
             }).join(',');
         }).join('\n');
