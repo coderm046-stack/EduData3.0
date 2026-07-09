@@ -1997,6 +1997,10 @@
             <div class="field-group"><label>GENDER</label><select id="bulk-GENDER"><option value="">No Change</option><option>Male</option><option>Female</option></select></div>
             <div class="field-group"><label>APL/BPL</label><select id="bulk-APL_BPL"><option value="">No Change</option><option>APL</option><option>BPL</option></select></div>
             <div class="field-group"><label>HOSTEL</label><select id="bulk-HOSTEL_STUDENT"><option value="">No Change</option><option>Yes</option><option>No</option></select></div>
+            <div class="field-group"><label>ORPHAN</label><select id="bulk-ORPHAN"><option value="">No Change</option><option>Yes</option><option>No</option></select></div>
+            <div class="field-group"><label>VOC. CURRENT YR</label><select id="bulk-VOC_CURRENT_YR"><option value="">No Change</option><option>Yes</option><option>No</option></select></div>
+            <div class="field-group" style="grid-column:span 2;"><label>VOC. CURRENT YEAR SUBJECT</label><input type="text" id="bulk-VOC_NAME_CURRENT" placeholder="e.g. Retail, Beauty & Wellness..." list="bulkVocSubjects"><datalist id="bulkVocSubjects"><option value="Retail"><option value="Beauty & Wellness"><option value="Information Technology"><option value="Agriculture"><option value="Healthcare"><option value="Tourism & Hospitality"><option value="Banking & Finance"><option value="Electronics"><option value="Food Processing"><option value="Apparel & Garment Making"><option value="Automobile"><option value="Construction"><option value="Media & Entertainment"><option value="Physical Education"><option value="Home Science"></datalist></div>
+            <div class="field-group" style="grid-column:span 2;"><label>DATE OF ADMISSION</label><input type="date" id="bulk-DOA"></div>
         </div>
         <div class="col-btn-stack" style="margin-top:16px;">
             <button onclick="applyBulkEdit()" style="background:var(--warning);box-shadow:0 2px 8px rgba(217,119,6,0.25);"><i class="fa-solid fa-check"></i> Apply to Selected</button>
@@ -2421,10 +2425,18 @@
 
                 /* Normalised column-name → FIELD lookup */
                 function norm(str) {
-                    return String(str).toUpperCase().replace(/[\s_.\-]/g,'');
+                    return String(str).toUpperCase().replace(/[\s_.\-\(\)]/g,'');
                 }
                 const fieldMap = {};
                 FIELDS.forEach(f => { fieldMap[norm(f)] = f; });
+                const aliases = {
+                    'VOCSUBJECTCURRENT': 'VOC_NAME_CURRENT',
+                    'VOCSUBJECTXTH': 'VOC_NAME',
+                    'VOCATXTH': 'VOC_STATUS',
+                    'VOCCURRENTYEARSSUBJECT': 'VOC_NAME_CURRENT',
+                    'VOCSUBJECTCURRENTYEAR': 'VOC_NAME_CURRENT',
+                };
+                Object.assign(fieldMap, aliases);
 
                 let imported = 0, skipped = 0;
                 const pendingRecords = [];
@@ -2466,6 +2478,14 @@
                     });
                     if (!record['APL_BPL']) record['APL_BPL'] = 'APL';
 
+                    /* Auto-derive Yes/No flags from subject names */
+                    if (record['VOC_NAME_CURRENT'] && record['VOC_CURRENT_YR'] === 'No') {
+                        record['VOC_CURRENT_YR'] = 'Yes';
+                    }
+                    if (record['VOC_NAME'] && record['VOC_STATUS'] === 'No') {
+                        record['VOC_STATUS'] = 'Yes';
+                    }
+
                     if (hasData) { imported++; pendingRecords.push(record); }
                     else         { skipped++; }
                 });
@@ -2493,25 +2513,27 @@
     function fixExistingData() {
         let changed = 0;
         const normFields = ['GENDER','HOSTEL_STUDENT','ORPHAN','VOC_STATUS','VOC_CURRENT_YR','CLASS','APL_BPL','BLOOD_GROUP','DIVISION','ACADEMIC_YEAR'];
-        db = db.map(s => {
-            const fixed = Object.assign({}, s);
-            // Ensure all FIELDS exist (default missing ones to '')
+        const ynFields = ['HOSTEL_STUDENT','ORPHAN','VOC_STATUS','VOC_CURRENT_YR'];
+        db.forEach(s => {
             FIELDS.forEach(f => {
-                if (fixed[f] === undefined) { fixed[f] = ''; changed++; }
+                if (s[f] === undefined) { s[f] = ''; changed++; }
             });
             normFields.forEach(f => {
-                const orig = fixed[f];
-                fixed[f] = normaliseDropdownValue(f, fixed[f]);
-                if (fixed[f] !== orig) changed++;
+                const orig = s[f];
+                s[f] = normaliseDropdownValue(f, s[f]);
+                if (s[f] !== orig) changed++;
             });
-            // Default empty yes/no fields to 'No'
-            ['HOSTEL_STUDENT','ORPHAN','VOC_STATUS','VOC_CURRENT_YR'].forEach(f => {
-                if (fixed[f] === '') fixed[f] = 'No';
+            ynFields.forEach(f => {
+                if (s[f] === '') { s[f] = 'No'; changed++; }
             });
-            if (!fixed['APL_BPL']) fixed['APL_BPL'] = 'APL';
-            return fixed;
+            if (!s['APL_BPL']) { s['APL_BPL'] = 'APL'; changed++; }
+            if (s['VOC_NAME_CURRENT'] && s['VOC_CURRENT_YR'] === 'No') {
+                s['VOC_CURRENT_YR'] = 'Yes'; changed++;
+            }
+            if (s['VOC_NAME'] && s['VOC_STATUS'] === 'No') {
+                s['VOC_STATUS'] = 'Yes'; changed++;
+            }
         });
-
         if (changed > 0) {
             try { localStorage.setItem('eduDB_v4_final', JSON.stringify(db)); } catch(e) { showToast('Storage full! Export backup and clear data.','#EF4444'); }
             console.log(`Fixed ${changed} fields in existing data.`);
@@ -3182,7 +3204,7 @@
     }
     function applyBulkEdit() {
         const ids = [...document.querySelectorAll('.row-select:checked')].map(cb => parseInt(cb.value));
-        const fields = ['CLASS','DIVISION','ACADEMIC_YEAR','GENDER','APL_BPL','HOSTEL_STUDENT'];
+        const fields = ['CLASS','DIVISION','ACADEMIC_YEAR','GENDER','APL_BPL','HOSTEL_STUDENT','ORPHAN','VOC_CURRENT_YR','VOC_NAME_CURRENT','DOA'];
         let changed = 0;
         fields.forEach(f => {
             const val = document.getElementById('bulk-'+f).value;
