@@ -1,9 +1,10 @@
-const CACHE_NAME = 'edu-data-v3';
+const CACHE_NAME = 'edu-data-v3.1';
 
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './icon.png',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
@@ -37,12 +38,18 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch Strategy: Network First, falling back to Cache
-// This ensures data is up to date if online, but works if offline
+// Fetch Strategy: Cache First, Network Update (fast offline-first)
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+    caches.match(event.request).then(cached => {
+      const fetched = fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => cached);
+      return cached || fetched;
     })
   );
 });
