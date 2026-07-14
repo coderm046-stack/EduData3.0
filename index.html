@@ -1711,6 +1711,9 @@
                     <option value="Yes">Voc. Current: Yes</option>
                     <option value="No">Voc. Current: No</option>
                 </select>
+                <select id="tbl-voc-subject-current" onchange="renderClassTable()" class="filter-select">
+                    <option value="">Voc Subject (Curr.): All</option>
+                </select>
                 <select id="tbl-orphan"   onchange="renderClassTable()" class="filter-select">
                     <option value="">Orphan: All</option>
                     <option value="Yes">Orphan: Yes</option>
@@ -2088,6 +2091,16 @@
     let currentPage = 1;
     const PAGE_SIZE = 50;
     let formDirty = false;
+    let selectedIds = new Set();
+    let lastFilterKey = '';
+    function getFilterKey() {
+        return ['tbl-class','tbl-div','tbl-year','tbl-gender','tbl-voc','tbl-voc-current','tbl-voc-subject-current','tbl-orphan','tbl-hostel','tbl-aplbpl']
+            .map(id => document.getElementById(id).value).join('|');
+    }
+    function toggleRowSelect(cb, id) {
+        if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+        cb.closest('tr').classList.toggle('row-selected', cb.checked);
+    }
     function toggleVoc() {
         document.getElementById('vocBox').style.display = document.getElementById('VOC_STATUS').value === 'Yes' ? 'block' : 'none';
         document.getElementById('vocBoxCurrent').style.display = document.getElementById('VOC_CURRENT_YR').value === 'Yes' ? 'block' : 'none';
@@ -2568,12 +2581,15 @@
 
     function renderClassTable() {
         if (typeof db === 'undefined') return;
+        const newKey = getFilterKey();
+        if (newKey !== lastFilterKey) { selectedIds.clear(); lastFilterKey = newKey; }
         const fCls    = document.getElementById('tbl-class').value;
         const fDiv    = document.getElementById('tbl-div').value;
         const fYear   = document.getElementById('tbl-year').value;
         const fGender = document.getElementById('tbl-gender').value;
         const fVoc    = document.getElementById('tbl-voc').value;
         const fVocCur = document.getElementById('tbl-voc-current').value;
+        const fVocSub = document.getElementById('tbl-voc-subject-current').value;
         const fOrphan = document.getElementById('tbl-orphan').value;
         const fHostel = document.getElementById('tbl-hostel').value;
         const fApl    = document.getElementById('tbl-aplbpl').value;
@@ -2586,6 +2602,7 @@
             if (fGender && s.GENDER        !== fGender) return false;
             if (fVoc    && s.VOC_STATUS    !== fVoc)    return false;
             if (fVocCur && s.VOC_CURRENT_YR !== fVocCur) return false;
+            if (fVocSub && s.VOC_NAME_CURRENT !== fVocSub) return false;
             if (fOrphan && s.ORPHAN        !== fOrphan) return false;
             if (fHostel && (fHostel==='Yes') !== hostelYes) return false;
             if (fApl    && s.APL_BPL       !== fApl)    return false;
@@ -2621,7 +2638,7 @@
         document.getElementById('classTableBody').innerHTML = rows.length
             ? pageRows.map((r,i) => `
                 <tr class="${(i+(currentPage-1)*PAGE_SIZE)%2===0?'row-even':'row-odd'}" style="cursor:pointer;" onclick="startEdit(${r.id})">
-                    <td class="tbl-cell tbl-center"><input type="checkbox" class="row-select" value="${r.id}" onclick="event.stopPropagation();this.closest('tr').classList.toggle('row-selected',this.checked);"></td>
+                    <td class="tbl-cell tbl-center"><input type="checkbox" class="row-select" value="${r.id}" ${selectedIds.has(r.id)?'checked':''} onclick="event.stopPropagation();toggleRowSelect(this,${r.id})"></td>
                     ${td((currentPage-1)*PAGE_SIZE+i+1,true)}
                     ${td(r.CLASS,true)}
                     ${td(r.DIVISION,true)}
@@ -2672,6 +2689,9 @@
             rows.length ? `Showing ${startRow}-${endRow} of ${rows.length} (filtered from ${db.length} total)` : `No records match the selected filters.`;
         document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} (${rows.length} records)`;
         document.getElementById('paginationControls').style.display = rows.length > PAGE_SIZE ? 'flex' : 'none';
+        populateVocSubjectFilter();
+        const allFilteredIds = new Set(rows.map(r => r.id));
+        document.getElementById('selectAll').checked = allFilteredIds.size > 0 && [...allFilteredIds].every(id => selectedIds.has(id));
         updateSummaryStats();
     }
 
@@ -2914,6 +2934,7 @@
         const fGender = document.getElementById('tbl-gender').value;
         const fVoc    = document.getElementById('tbl-voc').value;
         const fVocCur = document.getElementById('tbl-voc-current').value;
+        const fVocSub = document.getElementById('tbl-voc-subject-current').value;
         const fOrphan = document.getElementById('tbl-orphan').value;
         const fHostel = document.getElementById('tbl-hostel').value;
         const fApl    = document.getElementById('tbl-aplbpl').value;
@@ -2926,6 +2947,7 @@
             if (fGender && s.GENDER        !== fGender) return false;
             if (fVoc    && s.VOC_STATUS    !== fVoc)    return false;
             if (fVocCur && s.VOC_CURRENT_YR !== fVocCur) return false;
+            if (fVocSub && s.VOC_NAME_CURRENT !== fVocSub) return false;
             if (fOrphan && s.ORPHAN        !== fOrphan) return false;
             if (fHostel && (fHostel === 'Yes') !== hostelYes) return false;
             if (fApl    && s.APL_BPL       !== fApl)    return false;
@@ -2954,7 +2976,7 @@
         const rows = getFilteredRows();
         const cb = document.getElementById('exportSelectedOnly');
         if (!cb || !cb.checked) return rows;
-        const ids = [...document.querySelectorAll('.row-select:checked')].map(ch => parseInt(ch.value));
+        const ids = [...selectedIds];
         if (!ids.length) { return []; }
         return rows.filter(s => ids.includes(s.id));
     }
@@ -3146,11 +3168,24 @@
     /* ---- */
 
     function clearTableFilters() {
-        ['tbl-class','tbl-div','tbl-year','tbl-gender','tbl-voc','tbl-voc-current','tbl-orphan','tbl-hostel','tbl-aplbpl']
+        ['tbl-class','tbl-div','tbl-year','tbl-gender','tbl-voc','tbl-voc-current','tbl-voc-subject-current','tbl-orphan','tbl-hostel','tbl-aplbpl']
             .forEach(id => document.getElementById(id).value = '');
         document.getElementById('summaryYearFilter').value = '';
         updateSummaryStats();
         renderClassTable();
+    }
+
+    function populateVocSubjectFilter() {
+        const sel = document.getElementById('tbl-voc-subject-current');
+        if (!sel) return;
+        const currentVal = sel.value;
+        const subjects = [...new Set(
+            db.filter(s => s.VOC_CURRENT_YR === 'Yes' && s.VOC_NAME_CURRENT && s.VOC_NAME_CURRENT.trim())
+               .map(s => s.VOC_NAME_CURRENT.trim())
+        )].sort();
+        sel.innerHTML = '<option value="">Voc Subject (Curr.): All</option>'
+            + subjects.map(s => `<option value="${s.replace(/"/g,'&quot;')}">${esc(s)}</option>`).join('');
+        if (subjects.includes(currentVal)) sel.value = currentVal;
     }
 
     /* ---- Auto Allot Roll Numbers ---- */
@@ -3185,26 +3220,30 @@
 
     /* ---- Bulk select/delete ---- */
     function toggleSelectAll(el) {
-        document.querySelectorAll('.row-select').forEach(cb => {
-            cb.checked = el.checked;
-            cb.closest('tr').classList.toggle('row-selected', el.checked);
-        });
+        const rows = getFilteredRows();
+        if (el.checked) {
+            rows.forEach(r => selectedIds.add(r.id));
+        } else {
+            selectedIds.clear();
+        }
+        renderClassTable();
     }
     function deleteSelected() {
-        const ids = [...document.querySelectorAll('.row-select:checked')].map(cb => parseInt(cb.value));
+        const ids = [...selectedIds];
         if (!ids.length) { showToast('No records selected!','#F59E0B'); return; }
         if (!confirm(`Delete ${ids.length} selected record${ids.length>1?'s':''}?`)) return;
         db = db.filter(s => !ids.includes(s.id));
+        selectedIds.clear();
         try { localStorage.setItem('eduDB_v4_final', JSON.stringify(db)); } catch(e) { showToast('Storage full! Export backup and clear data.','#EF4444'); }
         renderClassTable(); updateDashboard(); showToast(`Deleted ${ids.length} record${ids.length>1?'s':''}!`);
     }
     function bulkEdit() {
-        const ids = [...document.querySelectorAll('.row-select:checked')].map(cb => parseInt(cb.value));
+        const ids = [...selectedIds];
         if (!ids.length) { showToast('No records selected!','#F59E0B'); return; }
         document.getElementById('bulkEditModal').style.display = 'flex';
     }
     function applyBulkEdit() {
-        const ids = [...document.querySelectorAll('.row-select:checked')].map(cb => parseInt(cb.value));
+        const ids = [...selectedIds];
         const fields = ['CLASS','DIVISION','ACADEMIC_YEAR','GENDER','APL_BPL','HOSTEL_STUDENT','ORPHAN','VOC_CURRENT_YR','VOC_NAME_CURRENT','DOA'];
         let changed = 0;
         fields.forEach(f => {
